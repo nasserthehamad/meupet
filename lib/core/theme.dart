@@ -28,7 +28,8 @@ ThemeData buildTheme() {
     scaffoldBackgroundColor: AppColors.bg,
   );
   return base.copyWith(
-    textTheme: GoogleFonts.poppinsTextTheme(base.textTheme).apply(
+    textTheme: base.textTheme.apply(
+      fontFamily: GoogleFonts.poppins().fontFamily,
       bodyColor: AppColors.text,
       displayColor: AppColors.text,
     ),
