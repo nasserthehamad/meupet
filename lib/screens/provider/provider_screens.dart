@@ -119,8 +119,22 @@ class SolicitacoesScreen extends StatelessWidget {
           const Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator()))
         else if (pending.isEmpty)
           const EmptyState(icon: Icons.inbox_rounded, text: 'Nenhuma solicitação pendente. 🐾')
-        else
+        else ...[
+          WhiteBlock(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(children: [
+              Image.asset('assets/images/alerta.gif', width: 38, height: 38),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  pending.length == 1 ? '1 novo pedido aguardando sua resposta' : '${pending.length} novos pedidos aguardando sua resposta',
+                  style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.red),
+                ),
+              ),
+            ]),
+          ),
           for (final a in pending) ProviderAppointmentTile(a: a, pending: true),
+        ],
         const SizedBox(height: 30),
       ],
     );

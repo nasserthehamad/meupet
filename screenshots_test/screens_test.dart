@@ -23,6 +23,7 @@ import 'package:meupet/screens/tutor/pet_detail_screen.dart';
 import 'package:meupet/screens/tutor/pet_form_screen.dart';
 import 'package:meupet/screens/tutor/providers_screen.dart';
 import 'package:meupet/screens/tutor/tutor_shell.dart';
+import 'package:meupet/widgets/login_hero.dart';
 
 String photo(String name) => base64Encode(File('screenshots_test/fixtures/$name.jpg').readAsBytesSync());
 Timestamp ts(DateTime d) => Timestamp.fromDate(d);
@@ -231,6 +232,7 @@ Future<void> Function(WidgetTester) tapNav(String label) => (t) async {
     };
 
 void main() {
+  LoginHero.enableVideo = false;
   setUpAll(loadFonts);
 
   testWidgets('01 login', (t) => shot(t, '01_login', () => const LoginScreen()));

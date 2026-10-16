@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/db.dart';
 import '../../core/theme.dart';
 import '../../widgets/common.dart';
+import '../../widgets/login_hero.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -63,25 +64,12 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(
-              height: h * 0.36,
-              child: Stack(fit: StackFit.expand, children: [
-                ClipPath(
-                  clipper: _BlobClipper(),
-                  child: Image.asset('assets/images/hero.jpg', fit: BoxFit.cover),
-                ),
-                Positioned(
-                  left: 24,
-                  bottom: 8,
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text.rich(TextSpan(children: [
-                      TextSpan(text: 'Meu', style: logoStyle(44, AppColors.teal)),
-                      TextSpan(text: 'PET', style: logoStyle(44, AppColors.orange)),
-                    ])),
-                    Text('+VIDA', style: logoStyle(26, AppColors.teal).copyWith(fontWeight: FontWeight.w400)),
-                  ]),
-                ),
-              ]),
+            Padding(
+              padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: h * 0.42),
+                child: const Center(child: LoginHero()),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -145,20 +133,4 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-}
-
-class _BlobClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size s) {
-    final p = Path()..moveTo(0, 0);
-    p.lineTo(s.width, 0);
-    p.lineTo(s.width, s.height * 0.55);
-    p.quadraticBezierTo(s.width * 0.8, s.height * 0.95, s.width * 0.45, s.height * 0.8);
-    p.quadraticBezierTo(s.width * 0.15, s.height * 0.68, 0, s.height * 0.9);
-    p.close();
-    return p;
-  }
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
