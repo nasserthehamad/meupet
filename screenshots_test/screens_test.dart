@@ -145,9 +145,9 @@ Future<FakeFirebaseFirestore> seed() async {
     'lastMessage': 'Obrigada!', 'lastSender': 'tutor1', 'updatedAt': ts(day(0, 10, 47)),
   });
   final msgs = [
-    ['tutor1', 'Oi, ocorreu um imprevisto e chegarei uns 10 minutinhos atrasada. Tudo bem se eu for ou preciso remarcar?', day(0, 10, 45)],
-    ['vet1', 'Bom dia, Jiara! Tudo bem?', day(0, 10, 46)],
-    ['vet1', 'Fique tranquila, estaremos à sua espera com a Zuka!', day(0, 10, 46, )],
+    ['tutor1', 'Oi, ocorreu um imprevisto e chegarei uns 10 minutinhos atrasada. Tudo bem se eu for ou preciso remarcar?', day(0, 10, 44)],
+    ['vet1', 'Bom dia, Jiara! Tudo bem?', day(0, 10, 45)],
+    ['vet1', 'Fique tranquila, estaremos à sua espera com a Zuka!', day(0, 10, 46)],
     ['tutor1', 'Obrigada!', day(0, 10, 47)],
   ];
   for (final m in msgs) {
@@ -248,18 +248,13 @@ void main() {
   testWidgets('10 prestadores', (t) => shot(t, '10_lista_prestadores', () => const ProvidersListScreen(category: 'Banho e Tosa'), as: 'tutor'));
   testWidgets('11 prestador detalhe', (t) => shot(t, '11_prestador_detalhe', () => ProviderDetailScreen(provider: vet), as: 'tutor'));
   testWidgets('12 agendar', (t) => shot(t, '12_agendar', () => BookingScreen(provider: vet, initialService: 'Veterinário'), as: 'tutor',
-      act: (t) async => t.tap(find.text('Zuka').first)));
+      act: (t) async => t.tap(find.text('Athos').first)));
   testWidgets('13 adocao', (t) => shot(t, '13_adocao', () => const AdoptionScreen(), as: 'tutor'));
   testWidgets('14 conversas', (t) => shot(t, '14_conversas', () => const TutorShell(), as: 'tutor', act: tapNav('Chat')));
   testWidgets('15 chat', (t) => shot(t, '15_chat', () => ChatScreen(chatId: Db.chatIdFor('tutor1', 'vet1'), otherName: 'Vet Amicão', otherId: 'vet1'), as: 'tutor'));
   testWidgets('16 perfil', (t) => shot(t, '16_tutor_perfil', () => const TutorShell(), as: 'tutor', act: tapNav('Perfil')));
   testWidgets('17 novo pet', (t) => shot(t, '17_novo_pet', () => const PetFormScreen(), as: 'tutor'));
-  testWidgets('18 prestador atendimentos', (t) => shot(t, '18_prestador_atendimentos', () => const ProviderShell(), as: 'vet',
-      act: (t) async {
-        await t.tap(find.text('Próximos'));
-        await t.pump(const Duration(milliseconds: 500));
-        await t.tap(find.text('Todos').last);
-      }));
+  testWidgets('18 prestador atendimentos', (t) => shot(t, '18_prestador_atendimentos', () => const ProviderShell(), as: 'vet'));
   testWidgets('19 prestador solicitacoes', (t) => shot(t, '19_prestador_solicitacoes', () => const ProviderShell(), as: 'vet', act: tapNav('Solicitações')));
   testWidgets('20 prestador perfil', (t) => shot(t, '20_prestador_perfil', () => const ProviderShell(), as: 'vet', act: tapNav('Perfil')));
 }

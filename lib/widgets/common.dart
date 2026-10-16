@@ -144,15 +144,18 @@ class PhotoAvatar extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: border, width: 2),
-        color: const Color(0xFFE3F2F4),
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(shape: BoxShape.circle, color: border),
+      child: ClipOval(
+        child: ColoredBox(
+          color: const Color(0xFFE3F2F4),
+          child: SizedBox.expand(
+            child: bytes != null
+                ? Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true)
+                : Icon(fallbackIcon, color: AppColors.teal, size: size * 0.5),
+          ),
+        ),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: bytes != null
-          ? Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true)
-          : Icon(fallbackIcon, color: AppColors.teal, size: size * 0.5),
     );
   }
 }
@@ -247,13 +250,16 @@ class WhiteBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: margin,
-      padding: padding,
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(22),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
       ),
-      child: child,
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(padding: padding, child: child),
+      ),
     );
   }
 }
