@@ -868,7 +868,7 @@ class _RescheduleCell extends StatelessWidget {
             ),
           ]),
           const SizedBox(height: 4),
-          const Text('Reagendar', style: TextStyle(fontSize: 9.5, color: AppColors.muted)),
+          const FittedBox(fit: BoxFit.scaleDown, child: Text('Reagendar', maxLines: 1, softWrap: false, style: TextStyle(fontSize: 10, color: AppColors.muted))),
         ]),
       ),
     );

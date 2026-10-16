@@ -143,24 +143,27 @@ class _PawTrailPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     const icon = Icons.pets;
-    final start = Offset(size.width * 0.21, 2);
-    final end = Offset(size.width * 0.40, size.height - 2);
-    const steps = 7;
-    final dir = end - start;
-    final len = dir.distance;
-    final n = Offset(-dir.dy / len, dir.dx / len); // perpendicular
-    final angle = dir.direction - 1.5708; // patinhas "andando" ao longo da trilha
+    // Trilha em curva: desce pela esquerda do logo e termina embaixo, no centro.
+    final p0 = Offset(size.width * 0.27, 6);
+    final p1 = Offset(size.width * 0.06, size.height * 0.62);
+    final p2 = Offset(size.width * 0.44, size.height - 4);
+    Offset at(double t) => p0 * ((1 - t) * (1 - t)) + p1 * (2 * (1 - t) * t) + p2 * (t * t);
+    Offset tangent(double t) => (p1 - p0) * (2 * (1 - t)) + (p2 - p1) * (2 * t);
+    const steps = 8;
     for (var i = 0; i < steps; i++) {
-      final t = (i + 0.5) / steps;
+      final t = 0.04 + i * (0.92 / (steps - 1));
       final side = i.isEven ? 1.0 : -1.0;
-      final p = start + dir * t + n * (10 * side);
+      final tg = tangent(t);
+      final len = tg.distance;
+      final n = Offset(-tg.dy / len, tg.dx / len);
+      final p = at(t) + n * (9 * side);
       final tp = TextPainter(
         text: TextSpan(
           text: String.fromCharCode(icon.codePoint),
           style: TextStyle(
             fontFamily: icon.fontFamily,
             package: icon.fontPackage,
-            fontSize: 21,
+            fontSize: 20,
             color: color,
           ),
         ),
@@ -168,7 +171,7 @@ class _PawTrailPainter extends CustomPainter {
       )..layout();
       canvas.save();
       canvas.translate(p.dx, p.dy);
-      canvas.rotate(angle + 3.1416 + (side * 0.25));
+      canvas.rotate(tg.direction + 1.5708 + side * 0.22);
       tp.paint(canvas, Offset(-tp.width / 2, -tp.height / 2));
       canvas.restore();
     }
