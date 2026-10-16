@@ -12,9 +12,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -25,7 +25,9 @@ jobs:
           cache: true
 
       - name: Versões
-        run: flutter --version
+        run: |
+          flutter --version
+          echo "::notice title=Flutter::$(flutter --version | head -1)"
 
       - name: Gerar pasta android (flutter create)
         run: |
@@ -49,16 +51,16 @@ jobs:
         run: python3 tool/gen_firebase_options.py
 
       - name: Dependências
-        run: flutter pub get
+        run: bash tool/ci_step.sh "pub get" flutter pub get
 
       - name: Ícone do app
-        run: dart run flutter_launcher_icons
+        run: bash tool/ci_step.sh "launcher icons" dart run flutter_launcher_icons
 
       - name: Analisar código
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+        run: bash tool/ci_step.sh "flutter analyze" flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Build APK
-        run: flutter build apk --release
+        run: bash tool/ci_step.sh "build apk" flutter build apk --release
 
       - name: Renomear
         run: cp build/app/outputs/flutter-apk/app-release.apk MeuPet.apk

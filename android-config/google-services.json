@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1065446221048",
+    "project_id": "meupet-2c05b",
+    "storage_bucket": "meupet-2c05b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1065446221048:android:15ed65ff457e46750e070d",
+        "android_client_info": {
+          "package_name": "com.meupet.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAtxO_zWLj-yiBodQ3dxa28Mmhe2lFHoVo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
