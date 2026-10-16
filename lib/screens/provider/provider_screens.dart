@@ -149,7 +149,10 @@ class ProviderAppointmentTile extends StatelessWidget {
               Text('Animal: ${a.species}', style: const TextStyle(fontSize: 13)),
               Text('Serviço: ${a.service}${a.taxiPet ? ' + TaxiPet' : ''}', style: const TextStyle(fontSize: 13)),
               if (a.taxiPet && a.address.isNotEmpty)
-                Text('📍 ${a.address}', style: const TextStyle(fontSize: 12, color: AppColors.orange)),
+                Row(children: [
+                  const Icon(Icons.place_rounded, size: 14, color: AppColors.orange),
+                  Expanded(child: Text(a.address, style: const TextStyle(fontSize: 12, color: AppColors.orange))),
+                ]),
               if (a.notes.isNotEmpty) Text('Obs.: ${a.notes}', style: const TextStyle(fontSize: 12, color: AppColors.muted)),
               Text('Tutor: ${a.tutorName}', style: const TextStyle(fontSize: 12, color: AppColors.muted)),
             ]),

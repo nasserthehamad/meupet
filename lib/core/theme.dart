@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
   static const teal = Color(0xFF1B9AAA);
@@ -26,10 +25,10 @@ ThemeData buildTheme() {
       surface: Colors.white,
     ),
     scaffoldBackgroundColor: AppColors.bg,
+    fontFamily: 'Poppins',
   );
   return base.copyWith(
     textTheme: base.textTheme.apply(
-      fontFamily: GoogleFonts.poppins().fontFamily,
       bodyColor: AppColors.text,
       displayColor: AppColors.text,
     ),
@@ -43,10 +42,10 @@ ThemeData buildTheme() {
 }
 
 TextStyle logoStyle(double size, Color color) =>
-    GoogleFonts.baloo2(fontSize: size, fontWeight: FontWeight.w800, color: color, height: 1);
+    TextStyle(fontFamily: 'Baloo2', fontSize: size, fontWeight: FontWeight.w800, color: color, height: 1);
 
 TextStyle sectionStyle() =>
-    GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.teal);
+    const TextStyle(fontFamily: 'Poppins', fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.teal);
 
 InputDecoration inputDeco(String label, {IconData? icon, String? hint, bool filledTeal = false}) {
   return InputDecoration(

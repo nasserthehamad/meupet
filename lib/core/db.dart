@@ -12,11 +12,14 @@ import 'models.dart';
 class Session {
   static final ValueNotifier<AppUser?> current = ValueNotifier<AppUser?>(null);
   static AppUser get user => current.value!;
-  static String get uid => FirebaseAuth.instance.currentUser!.uid;
+  static String get uid => current.value?.id ?? FirebaseAuth.instance.currentUser!.uid;
 }
 
 class Db {
-  static final fs = FirebaseFirestore.instance;
+  static FirebaseFirestore? _fs;
+  static FirebaseFirestore get fs => _fs ??= FirebaseFirestore.instance;
+  /// Permite trocar o banco (usado nas prints com dados de exemplo).
+  static set fs(FirebaseFirestore value) => _fs = value;
   static CollectionReference<Map<String, dynamic>> get users => fs.collection('users');
   static CollectionReference<Map<String, dynamic>> get pets => fs.collection('pets');
   static CollectionReference<Map<String, dynamic>> get appointments => fs.collection('appointments');

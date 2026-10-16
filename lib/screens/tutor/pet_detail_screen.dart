@@ -152,7 +152,11 @@ class CarteirinhaTab extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text('${pet.species}${pet.breed.isNotEmpty ? ' · ${pet.breed}' : ''}', style: const TextStyle(fontSize: 12)),
                 if (pet.allergies.isNotEmpty)
-                  Text('⚠ Alergias: ${pet.allergies}', style: const TextStyle(fontSize: 11, color: AppColors.red)),
+                  Row(children: [
+                    const Icon(Icons.warning_amber_rounded, size: 14, color: AppColors.red),
+                    const SizedBox(width: 3),
+                    Expanded(child: Text('Alergias: ${pet.allergies}', style: const TextStyle(fontSize: 11, color: AppColors.red))),
+                  ]),
                 const SizedBox(height: 6),
                 const Text('Cuidado que vale uma VIDA!', style: TextStyle(fontSize: 10, color: AppColors.orange, fontStyle: FontStyle.italic)),
               ]),
@@ -178,9 +182,11 @@ class CarteirinhaTab extends StatelessWidget {
           ]),
         ),
         const SizedBox(height: 6),
-        const Center(
-          child: Text('🔍 Toque no QR Code para ampliar', style: TextStyle(fontSize: 12, color: AppColors.muted)),
-        ),
+        const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Icon(Icons.zoom_in_rounded, size: 16, color: AppColors.muted),
+          SizedBox(width: 4),
+          Text('Toque no QR Code para ampliar', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+        ]),
       ],
     );
   }

@@ -22,3 +22,4 @@ test/
 
 # Gerado a partir de android-config/google-services.json
 lib/firebase_options.dart
+screenshots/
