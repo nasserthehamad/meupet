@@ -143,9 +143,9 @@ class _PawTrailPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     const icon = Icons.pets;
-    final start = Offset(size.width * 0.24, 4);
-    final end = Offset(size.width * 0.42, size.height - 4);
-    const steps = 8;
+    final start = Offset(size.width * 0.21, 2);
+    final end = Offset(size.width * 0.40, size.height - 2);
+    const steps = 7;
     final dir = end - start;
     final len = dir.distance;
     final n = Offset(-dir.dy / len, dir.dx / len); // perpendicular
@@ -153,15 +153,15 @@ class _PawTrailPainter extends CustomPainter {
     for (var i = 0; i < steps; i++) {
       final t = (i + 0.5) / steps;
       final side = i.isEven ? 1.0 : -1.0;
-      final p = start + dir * t + n * (7 * side);
+      final p = start + dir * t + n * (10 * side);
       final tp = TextPainter(
         text: TextSpan(
           text: String.fromCharCode(icon.codePoint),
           style: TextStyle(
             fontFamily: icon.fontFamily,
             package: icon.fontPackage,
-            fontSize: 15,
-            color: color.withValues(alpha: 0.95),
+            fontSize: 21,
+            color: color,
           ),
         ),
         textDirection: TextDirection.ltr,

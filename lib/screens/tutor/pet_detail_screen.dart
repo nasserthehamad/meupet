@@ -469,16 +469,26 @@ class VacinasTab extends StatelessWidget {
                         onPressed: () => _vaccineForm(context),
                       ),
                     ]),
-                    if (vac.isEmpty) const Text('Nenhuma vacina registrada.', style: TextStyle(color: AppColors.muted, fontSize: 13)),
-                    for (final v in vac)
-                      _ControlRow(
-                        color: AppColors.teal,
-                        title: v.data()['name'] ?? '',
-                        date: tsToDate(v.data()['date']),
-                        extra: v.data()['vet'] ?? '',
-                        next: tsToDate(v.data()['nextDate']),
-                        onDelete: () => v.reference.delete(),
-                      ),
+                    if (vac.isEmpty)
+                      const Text('Nenhuma vacina registrada.', style: TextStyle(color: AppColors.muted, fontSize: 13))
+                    else
+                      _PillTable(color: AppColors.teal, rows: vac.length, cols: [
+                        _TableCol('VACINA', pill: true, flex: 3, cells: [
+                          for (final v in vac)
+                            Column(mainAxisSize: MainAxisSize.min, children: [
+                              Text(v.data()['name'] ?? '', textAlign: TextAlign.center, maxLines: 2,
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13, height: 1.1)),
+                              const Icon(Icons.vaccines_rounded, color: Colors.white70, size: 14),
+                            ]),
+                        ]),
+                        _TableCol('DATA', flex: 3, cells: [for (final v in vac) _DateYear(tsToDate(v.data()['date']))]),
+                        _TableCol('REFORÇO', pill: true, flex: 3, cells: [
+                          for (final v in vac) _IntervalCell(tsToDate(v.data()['date']), tsToDate(v.data()['nextDate'])),
+                        ]),
+                        _TableCol('', flex: 2, cells: [
+                          for (final v in vac) _RescheduleCell(color: AppColors.teal, doc: v),
+                        ]),
+                      ]),
                   ]),
                 ),
                 SnakeBand(
@@ -492,16 +502,28 @@ class VacinasTab extends StatelessWidget {
                         onPressed: () => _parasiteForm(context),
                       ),
                     ]),
-                    if (par.isEmpty) const Text('Nenhum vermífugo/antipulgas registrado.', style: TextStyle(color: AppColors.muted, fontSize: 13)),
-                    for (final p in par)
-                      _ControlRow(
-                        color: AppColors.orange,
-                        title: p.data()['product'] ?? '',
-                        date: tsToDate(p.data()['date']),
-                        extra: (p.data()['weight'] ?? '').toString().isEmpty ? '' : '${p.data()['weight']} kg',
-                        next: tsToDate(p.data()['nextDate']),
-                        onDelete: () => p.reference.delete(),
-                      ),
+                    if (par.isEmpty)
+                      const Text('Nenhum vermífugo/antipulgas registrado.', style: TextStyle(color: AppColors.muted, fontSize: 13))
+                    else
+                      _PillTable(color: AppColors.orange, rows: par.length, cols: [
+                        _TableCol('DATA', flex: 3, cells: [for (final p in par) _DateYear(tsToDate(p.data()['date']))]),
+                        _TableCol('VERMÍFUGO', pill: true, flex: 3, cells: [
+                          for (final p in par)
+                            Text(p.data()['product'] ?? '', textAlign: TextAlign.center, maxLines: 2,
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13, height: 1.1)),
+                        ]),
+                        _TableCol('PESO', flex: 2, cells: [
+                          for (final p in par)
+                            Text((p.data()['weight'] ?? '').toString().isEmpty ? '-' : '${p.data()['weight']}kg',
+                                style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+                        ]),
+                        _TableCol('REFORÇO', pill: true, flex: 3, cells: [
+                          for (final p in par) _IntervalCell(tsToDate(p.data()['date']), tsToDate(p.data()['nextDate']), clock: true),
+                        ]),
+                        _TableCol('', flex: 2, cells: [
+                          for (final p in par) _RescheduleCell(color: AppColors.orange, doc: p),
+                        ]),
+                      ]),
                   ]),
                 ),
                 SnakeBand(
@@ -525,6 +547,23 @@ class VacinasTab extends StatelessWidget {
                             Text('em ${u.$2.difference(now).inDays} dias', style: const TextStyle(fontSize: 11, color: AppColors.muted)),
                           ]),
                         ),
+                    const SizedBox(height: 14),
+                    Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                      _BigRoundButton(
+                        icon: Icons.pest_control_rounded,
+                        label: 'Novo\nvermífugo',
+                        color: AppColors.orange,
+                        outlined: true,
+                        onTap: () => _parasiteForm(context),
+                      ),
+                      const SizedBox(width: 18),
+                      _BigRoundButton(
+                        icon: Icons.vaccines_rounded,
+                        label: 'Nova\nvacinação',
+                        color: const Color(0xFFF26B5B),
+                        onTap: () => _vaccineForm(context),
+                      ),
+                    ]),
                   ]),
                 ),
               ],
@@ -656,47 +695,211 @@ class VacinasTab extends StatelessWidget {
   }
 }
 
-class _ControlRow extends StatelessWidget {
+/// Tabela em "pílulas" do protótipo (colunas coloridas arredondadas).
+class _TableCol {
+  final String header;
+  final bool pill;
+  final int flex;
+  final List<Widget> cells;
+  const _TableCol(this.header, {this.pill = false, this.flex = 1, required this.cells});
+}
+
+class _PillTable extends StatelessWidget {
   final Color color;
-  final String title;
-  final DateTime? date;
-  final String extra;
-  final DateTime? next;
-  final VoidCallback onDelete;
-  const _ControlRow({
-    required this.color,
-    required this.title,
-    required this.date,
-    required this.extra,
-    required this.next,
-    required this.onDelete,
-  });
+  final int rows;
+  final List<_TableCol> cols;
+  const _PillTable({required this.color, required this.rows, required this.cols});
+
+  static const _rowH = 68.0;
+  static const _headH = 30.0;
+  static const _padV = 8.0;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(children: [
-        Container(
-          width: 92,
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)),
-          child: Text(title, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12)),
+      padding: const EdgeInsets.only(top: 4, right: 4),
+      child: Stack(children: [
+        for (var i = 0; i < rows - 1; i++)
+          Positioned(
+            left: 0,
+            right: 0,
+            top: _padV + _headH + _rowH * (i + 1),
+            child: Container(height: 1.5, color: color.withValues(alpha: 0.5)),
+          ),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          for (final c in cols)
+            Expanded(
+              flex: c.flex,
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                padding: const EdgeInsets.symmetric(vertical: _padV),
+                decoration: c.pill ? BoxDecoration(color: color, borderRadius: BorderRadius.circular(18)) : null,
+                child: Column(children: [
+                  SizedBox(
+                    height: _headH,
+                    child: Center(
+                      child: Text(c.header,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.3,
+                            color: c.pill ? const Color(0xFF1F2A2C) : AppColors.muted,
+                          )),
+                    ),
+                  ),
+                  for (final cell in c.cells) SizedBox(height: _rowH, child: Center(child: cell)),
+                ]),
+              ),
+            ),
+        ]),
+      ]),
+    );
+  }
+}
+
+class _DateYear extends StatelessWidget {
+  final DateTime? date;
+  const _DateYear(this.date);
+  @override
+  Widget build(BuildContext context) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      DateBadge(date),
+      if (date != null)
+        RotatedBox(
+          quarterTurns: 3,
+          child: Text('${date!.year}', style: const TextStyle(fontSize: 10, color: AppColors.muted)),
         ),
-        const SizedBox(width: 8),
-        DateBadge(date),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (extra.isNotEmpty) Text(extra, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
-            Text(next == null ? 'Sem reforço' : 'Reforço ${fmtDate(next)}', style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w600)),
+    ]);
+  }
+}
+
+String intervalLabel(DateTime? from, DateTime? to) {
+  if (from == null || to == null) return 'Sem\nreforço';
+  final d = to.difference(from).inDays;
+  if (d >= 350) {
+    final y = (d / 365).round();
+    return y == 1 ? '+1 ano' : '+$y anos';
+  }
+  if (d >= 28) {
+    final m = (d / 30).round();
+    return m == 1 ? '+1 mês' : '+$m meses';
+  }
+  return '+${d}dias';
+}
+
+class _IntervalCell extends StatelessWidget {
+  final DateTime? from;
+  final DateTime? to;
+  final bool clock;
+  const _IntervalCell(this.from, this.to, {this.clock = false});
+  @override
+  Widget build(BuildContext context) {
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Text(intervalLabel(from, to),
+          textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13, height: 1.1)),
+      if (to != null)
+        clock
+            ? const Padding(
+                padding: EdgeInsets.only(top: 3),
+                child: CircleAvatar(radius: 10, backgroundColor: Colors.white, child: Icon(Icons.schedule_rounded, size: 16, color: AppColors.text)),
+              )
+            : Text(fmtShort(to), style: const TextStyle(color: Colors.white70, fontSize: 10)),
+    ]);
+  }
+}
+
+class _RescheduleCell extends StatelessWidget {
+  final Color color;
+  final QueryDocumentSnapshot<Map<String, dynamic>> doc;
+  const _RescheduleCell({required this.color, required this.doc});
+
+  Future<void> _menu(BuildContext context) async {
+    final next = tsToDate(doc.data()['nextDate']);
+    final r = await showModalBottomSheet<String>(
+      context: context,
+      builder: (c) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: Icon(Icons.edit_calendar_rounded, color: color),
+            title: const Text('Reagendar reforço'),
+            subtitle: Text(next == null ? 'Sem reforço' : 'Atual: ${fmtDate(next)}'),
+            onTap: () => Navigator.pop(c, 'r'),
+          ),
+          if (next != null)
+            ListTile(
+              leading: const Icon(Icons.event_busy_rounded, color: AppColors.muted),
+              title: const Text('Remover reforço'),
+              onTap: () => Navigator.pop(c, 'n'),
+            ),
+          ListTile(
+            leading: const Icon(Icons.delete_outline_rounded, color: AppColors.red),
+            title: const Text('Excluir registro'),
+            onTap: () => Navigator.pop(c, 'd'),
+          ),
+        ]),
+      ),
+    );
+    if (!context.mounted || r == null) return;
+    if (r == 'r') {
+      final d = await pickDate(context, initial: next ?? DateTime.now());
+      if (d != null) await doc.reference.update({'nextDate': Timestamp.fromDate(d)});
+    } else if (r == 'n') {
+      await doc.reference.update({'nextDate': null});
+    } else if (r == 'd') {
+      final ok = await confirm(context, 'Excluir registro?', 'Essa ação não pode ser desfeita.', ok: 'Excluir');
+      if (ok) await doc.reference.delete();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () => _menu(context),
+      child: Padding(
+        padding: const EdgeInsets.all(2),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Stack(clipBehavior: Clip.none, children: [
+            Icon(Icons.calendar_month_rounded, color: AppColors.red.withValues(alpha: 0.85), size: 26),
+            Positioned(
+              left: -6,
+              bottom: -4,
+              child: CircleAvatar(radius: 8, backgroundColor: color, child: const Icon(Icons.schedule_rounded, size: 12, color: Colors.white)),
+            ),
           ]),
+          const SizedBox(height: 4),
+          const Text('Reagendar', style: TextStyle(fontSize: 9.5, color: AppColors.muted)),
+        ]),
+      ),
+    );
+  }
+}
+
+class _BigRoundButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final bool outlined;
+  final VoidCallback onTap;
+  const _BigRoundButton({required this.icon, required this.label, required this.color, this.outlined = false, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(40),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 62,
+          height: 62,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: outlined ? Colors.white : color,
+            border: Border.all(color: color, width: 3),
+          ),
+          child: Icon(icon, color: outlined ? color : Colors.white, size: 30),
         ),
-        PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert_rounded, color: AppColors.muted, size: 20),
-          onSelected: (_) => onDelete(),
-          itemBuilder: (_) => const [PopupMenuItem(value: 'del', child: Text('Excluir'))],
-        ),
+        const SizedBox(height: 4),
+        Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: AppColors.muted, height: 1.15)),
       ]),
     );
   }
