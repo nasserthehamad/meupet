@@ -1,0 +1,35 @@
+name: meupet
+description: "Meu Pet+ — um lugar onde o cuidado e o amor pela vida andam juntos."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  firebase_core: any
+  firebase_auth: any
+  cloud_firestore: any
+  image_picker: any
+  qr_flutter: any
+  google_fonts: any
+
+dev_dependencies:
+  flutter_launcher_icons: any
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: false
+  image_path: "assets/images/icon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/images/icon_fg.png"
+  min_sdk_android: 23

@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+    function isProvider() {
+      return signedIn() && get(/databases/$(database)/documents/users/$(me())).data.role == 'prestador';
+    }
+
+    // Perfis: qualquer usuário logado lê (nomes de prestadores, tutores); cada um edita o seu.
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && me() == uid;
+      allow delete: if false;
+    }
+
+    // Pets: tutor dono escreve; logados leem (vet precisa ver o prontuário).
+    match /pets/{petId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.ownerId == me();
+      allow update, delete: if signedIn() && resource.data.ownerId == me();
+
+      // vacinas, parasitas, registros do prontuário
+      match /{sub}/{docId} {
+        allow read: if signedIn();
+        allow write: if signedIn() && (
+          get(/databases/$(database)/documents/pets/$(petId)).data.ownerId == me() || isProvider()
+        );
+      }
+    }
+
+    // Agendamentos: só tutor e prestador envolvidos.
+    match /appointments/{id} {
+      allow read: if signedIn() && (resource.data.tutorId == me() || resource.data.providerId == me());
+      allow create: if signedIn() && request.resource.data.tutorId == me();
+      allow update: if signedIn() && (resource.data.tutorId == me() || resource.data.providerId == me());
+      allow delete: if signedIn() && resource.data.tutorId == me();
+    }
+
+    // Adoção: vitrine pública para logados; só quem publicou edita.
+    match /adoptions/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.postedBy == me();
+      allow update, delete: if signedIn() && resource.data.postedBy == me();
+    }
+
+    // Chat: só participantes.
+    match /chats/{chatId} {
+      allow read: if signedIn() && (resource == null || me() in resource.data.participants);
+      allow create: if signedIn() && me() in request.resource.data.participants;
+      allow update: if signedIn() && me() in resource.data.participants;
+
+      match /messages/{msgId} {
+        allow read: if signedIn() && me() in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+        allow create: if signedIn() && request.resource.data.senderId == me()
+          && me() in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+      }
+    }
+  }
+}

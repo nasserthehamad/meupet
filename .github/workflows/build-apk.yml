@@ -1,0 +1,78 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Versões
+        run: flutter --version
+
+      - name: Gerar pasta android (flutter create)
+        run: |
+          flutter create --org com.meupet --project-name meupet --platforms android .
+          rm -rf test
+          # ID do app = pacote registrado no Firebase
+          sed -i -E 's/(applicationId[ =]+")[^"]+"/\1com.meupet.app"/' android/app/build.gradle*
+          # Firebase exige minSdk 23
+          sed -i -E 's/flutter\.minSdkVersion/23/' android/app/build.gradle*
+          # Permissão de internet e nome do app
+          sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <application#' android/app/src/main/AndroidManifest.xml
+          sed -i 's/android:label="meupet"/android:label="Meu Pet+"/' android/app/src/main/AndroidManifest.xml
+          grep -n "applicationId\|minSdk" android/app/build.gradle* || true
+
+      - name: Chave de assinatura fixa (permite atualizar o app sem desinstalar)
+        run: |
+          mkdir -p ~/.android
+          cp android-keystore/debug.keystore ~/.android/debug.keystore
+
+      - name: Configuração do Firebase
+        run: python3 tool/gen_firebase_options.py
+
+      - name: Dependências
+        run: flutter pub get
+
+      - name: Ícone do app
+        run: dart run flutter_launcher_icons
+
+      - name: Analisar código
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Renomear
+        run: cp build/app/outputs/flutter-apk/app-release.apk MeuPet.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MeuPet-apk
+          path: MeuPet.apk
+
+      - name: Publicar release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Meu Pet+ build ${{ github.run_number }}
+          body: "APK gerado automaticamente a partir de ${{ github.sha }}. Baixe o MeuPet.apk no celular e instale."
+          files: MeuPet.apk
+          make_latest: true
