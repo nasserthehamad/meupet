@@ -36,32 +36,46 @@ class PetDetailScreen extends StatelessWidget {
             body: NestedScrollView(
               headerSliverBuilder: (context, _) => [
                 SliverToBoxAdapter(
-                  child: PetHeader(
-                    showBack: true,
-                    title: pet.name,
-                    subtitle: '${pet.species}${pet.breed.isNotEmpty ? ' · ${pet.breed}' : ''} · ${ageLabel(pet.birthDate)}',
-                    photo: pet.photo,
-                    fallbackIcon: Icons.pets_rounded,
-                    actions: [
-                      if (isOwner)
-                        IconButton(
-                          tooltip: 'Editar pet',
-                          icon: const Icon(Icons.edit_rounded, color: AppColors.orange),
-                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PetFormScreen(pet: pet))),
-                        ),
-                    ],
-                  ),
+                  child: Builder(builder: (context) {
+                    final tc = DefaultTabController.of(context);
+                    return AnimatedBuilder(
+                      animation: tc,
+                      builder: (context, _) => PetHeader(
+                        showBack: true,
+                        title: const ['Carteirinha', 'Histórico Clínico', 'Vacinação'][tc.index],
+                        subtitle: '${pet.species}${pet.breed.isNotEmpty ? ' · ${pet.breed}' : ''} · ${ageLabel(pet.birthDate)}',
+                        photo: pet.photo,
+                        avatarLabel: pet.name,
+                        fallbackIcon: Icons.pets_rounded,
+                        actions: [
+                          if (isOwner)
+                            IconButton(
+                              tooltip: 'Editar pet',
+                              style: IconButton.styleFrom(backgroundColor: AppColors.red.withValues(alpha: 0.85)),
+                              icon: const Icon(Icons.edit_rounded, color: Colors.white, size: 20),
+                              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PetFormScreen(pet: pet))),
+                            ),
+                        ],
+                      ),
+                    );
+                  }),
                 ),
                 const SliverToBoxAdapter(
-                  child: TabBar(
-                    labelColor: AppColors.teal,
-                    unselectedLabelColor: AppColors.muted,
-                    indicatorColor: AppColors.orange,
-                    tabs: [
-                      Tab(icon: Icon(Icons.badge_rounded), text: 'Carteirinha'),
-                      Tab(icon: Icon(Icons.assignment_rounded), text: 'Histórico'),
-                      Tab(icon: Icon(Icons.vaccines_rounded), text: 'Vacinas'),
-                    ],
+                  child: SnakeBand(
+                    index: 1,
+                    roundBottom: false,
+                    padding: EdgeInsets.only(top: 4, right: 30),
+                    child: TabBar(
+                      labelColor: AppColors.teal,
+                      unselectedLabelColor: AppColors.muted,
+                      indicatorColor: AppColors.orange,
+                      dividerColor: Colors.transparent,
+                      tabs: [
+                        Tab(icon: Icon(Icons.badge_rounded), text: 'Carteirinha'),
+                        Tab(icon: Icon(Icons.assignment_rounded), text: 'Histórico'),
+                        Tab(icon: Icon(Icons.vaccines_rounded), text: 'Vacinas'),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -89,8 +103,13 @@ class CarteirinhaTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.zero,
       children: [
+        SnakeBand(
+          index: 1,
+          roundTop: false,
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 30),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Text('Carteirinha de identificação PET', style: sectionStyle()),
         const SizedBox(height: 10),
         // Frente
@@ -114,7 +133,7 @@ class CarteirinhaTab extends StatelessWidget {
               Column(children: [
                 PhotoAvatar(photo: pet.photo, size: 86),
                 const SizedBox(height: 4),
-                Text(pet.name, style: logoStyle(20, AppColors.teal)),
+                Text(pet.name, style: scriptStyle(22, AppColors.teal)),
               ]),
               const SizedBox(width: 14),
               Expanded(
@@ -148,7 +167,7 @@ class CarteirinhaTab extends StatelessWidget {
                   TextSpan(text: 'Meu', style: logoStyle(30, AppColors.teal)),
                   TextSpan(text: 'PET', style: logoStyle(30, AppColors.orange)),
                 ])),
-                Text('+VIDA', style: logoStyle(18, AppColors.teal).copyWith(fontWeight: FontWeight.w400)),
+                Text('+VIDA', style: scriptStyle(18, AppColors.teal)),
                 const SizedBox(height: 8),
                 Text('${pet.species}${pet.breed.isNotEmpty ? ' · ${pet.breed}' : ''}', style: const TextStyle(fontSize: 12)),
                 if (pet.allergies.isNotEmpty)
@@ -168,7 +187,7 @@ class CarteirinhaTab extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Text(pet.name, style: logoStyle(26, AppColors.teal)),
+                      Text(pet.name, style: scriptStyle(30, AppColors.teal)),
                       const SizedBox(height: 10),
                       QrImageView(data: _qrData, size: 240),
                       const SizedBox(height: 8),
@@ -187,6 +206,8 @@ class CarteirinhaTab extends StatelessWidget {
           SizedBox(width: 4),
           Text('Toque no QR Code para ampliar', style: TextStyle(fontSize: 12, color: AppColors.muted)),
         ]),
+          ]),
+        ),
       ],
     );
   }
@@ -221,10 +242,12 @@ class HistoricoTab extends StatelessWidget {
           ..sort((a, b) => (tsToDate(b.data()['date']) ?? DateTime(1900)).compareTo(tsToDate(a.data()['date']) ?? DateTime(1900)));
         List<QueryDocumentSnapshot<Map<String, dynamic>>> byType(String t) => docs.where((d) => d.data()['type'] == t).toList();
         return ListView(
-          padding: const EdgeInsets.only(bottom: 90),
+          padding: EdgeInsets.zero,
           children: [
-            WhiteBlock(
-              margin: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+            SnakeBand(
+              index: 1,
+              roundTop: false,
+              padding: const EdgeInsets.fromLTRB(22, 14, 22, 26),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Prontuário Pet', style: sectionStyle()),
                 const SizedBox(height: 6),
@@ -238,9 +261,9 @@ class HistoricoTab extends StatelessWidget {
                 if (pet.food.isNotEmpty) ...[const Divider(height: 18), Text('Alimentação: ${pet.food}')],
               ]),
             ),
-            _RecordSection(pet: pet, type: 'consulta', title: 'Consultas', icon: Icons.medical_services_rounded, docs: byType('consulta')),
-            _RecordSection(pet: pet, type: 'receita', title: 'Receitas Médicas', icon: Icons.receipt_long_rounded, docs: byType('receita')),
-            _RecordSection(pet: pet, type: 'exame', title: 'Exames Pet', icon: Icons.biotech_rounded, docs: byType('exame')),
+            _RecordSection(band: 2, pet: pet, type: 'consulta', title: 'Consultas', icon: Icons.medical_services_rounded, docs: byType('consulta')),
+            _RecordSection(band: 3, pet: pet, type: 'receita', title: 'Receitas Médicas', icon: Icons.receipt_long_rounded, docs: byType('receita')),
+            _RecordSection(band: 4, pet: pet, type: 'exame', title: 'Exames Pet', icon: Icons.biotech_rounded, docs: byType('exame')),
           ],
         );
       },
@@ -249,16 +272,21 @@ class HistoricoTab extends StatelessWidget {
 }
 
 class _RecordSection extends StatelessWidget {
+  final int band;
   final Pet pet;
   final String type;
   final String title;
   final IconData icon;
   final List<QueryDocumentSnapshot<Map<String, dynamic>>> docs;
-  const _RecordSection({required this.pet, required this.type, required this.title, required this.icon, required this.docs});
+  const _RecordSection({required this.band, required this.pet, required this.type, required this.title, required this.icon, required this.docs});
 
   @override
   Widget build(BuildContext context) {
-    return WhiteBlock(
+    final last = band == 4;
+    return SnakeBand(
+      index: band,
+      roundBottom: !last,
+      padding: EdgeInsets.fromLTRB(22, 10, 18, last ? 100 : 22),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(child: Text(title, style: sectionStyle())),
@@ -427,10 +455,12 @@ class VacinasTab extends StatelessWidget {
             ]..sort((a, b) => a.$2.compareTo(b.$2));
 
             return ListView(
-              padding: const EdgeInsets.only(bottom: 90),
+              padding: EdgeInsets.zero,
               children: [
-                WhiteBlock(
-                  margin: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+                SnakeBand(
+                  index: 1,
+                  roundTop: false,
+                  padding: const EdgeInsets.fromLTRB(22, 10, 18, 22),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Row(children: [
                       Expanded(child: Text('Controle de Vacinação', style: sectionStyle())),
@@ -451,7 +481,9 @@ class VacinasTab extends StatelessWidget {
                       ),
                   ]),
                 ),
-                WhiteBlock(
+                SnakeBand(
+                  index: 2,
+                  padding: const EdgeInsets.fromLTRB(22, 10, 18, 22),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Row(children: [
                       Expanded(child: Text('Controle de Parasitas', style: sectionStyle())),
@@ -472,7 +504,9 @@ class VacinasTab extends StatelessWidget {
                       ),
                   ]),
                 ),
-                WhiteBlock(
+                SnakeBand(
+                  index: 3,
+                  padding: const EdgeInsets.fromLTRB(22, 14, 22, 40),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text('Próximas Vacinas', style: sectionStyle()),
                     const SizedBox(height: 6),

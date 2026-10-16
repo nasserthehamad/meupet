@@ -55,6 +55,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: EdgeInsets.zero,
       children: [
         PetHeader(title: 'Meu perfil', subtitle: prov ? 'Prestador de serviço' : 'Tutor', photo: _photo),
+        SnakeBand(
+          index: 1, padding: const EdgeInsets.only(top: 14, bottom: 30),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Center(
           child: PhotoPickerAvatar(
             photo: _photo,
@@ -112,6 +115,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 20),
             const Center(child: Text('Meu Pet+ · v1.0', style: TextStyle(color: AppColors.muted, fontSize: 12))),
             const SizedBox(height: 20),
+          ]),
+        ),
           ]),
         ),
       ],

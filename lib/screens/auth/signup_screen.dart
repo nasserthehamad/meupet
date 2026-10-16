@@ -85,6 +85,9 @@ class _SignupScreenState extends State<SignupScreen> {
         padding: EdgeInsets.zero,
         children: [
           const PetHeader(title: 'Cadastro', showBack: true, fallbackIcon: Icons.person_add_alt_1_rounded),
+          SnakeBand(
+            index: 1, padding: const EdgeInsets.only(top: 14, bottom: 30),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -137,6 +140,8 @@ class _SignupScreenState extends State<SignupScreen> {
               const SizedBox(height: 26),
               OrangeButton(label: 'Criar conta', loading: _loading, onPressed: _submit),
               const SizedBox(height: 30),
+            ]),
+          ),
             ]),
           ),
         ],

@@ -7,7 +7,7 @@ class AppColors {
   static const purple = Color(0xFF7E5BD0);
   static const brown = Color(0xFF6B3E26);
   static const yellow = Color(0xFFFFD45C);
-  static const bg = Color(0xFFEDEDED);
+  static const bg = Color(0xFFE7E7E7);
   static const card = Colors.white;
   static const text = Color(0xFF2F3A3D);
   static const muted = Color(0xFF8A9599);
@@ -41,8 +41,17 @@ ThemeData buildTheme() {
   );
 }
 
+/// Letra do logo "MEU PET+" (pincel), como no protótipo.
 TextStyle logoStyle(double size, Color color) =>
-    TextStyle(fontFamily: 'Baloo2', fontSize: size, fontWeight: FontWeight.w800, color: color, height: 1);
+    TextStyle(fontFamily: 'CaveatBrush', fontSize: size, color: color, height: 1);
+
+/// Títulos manuscritos ("Carteirinha", "Histórico Clínico"...).
+TextStyle scriptStyle(double size, Color color) =>
+    TextStyle(fontFamily: 'Kaushan', fontSize: size, color: color, height: 1.1);
+
+/// Textos arredondados (nomes de pets, números).
+TextStyle roundStyle(double size, Color color, {FontWeight weight = FontWeight.w800}) =>
+    TextStyle(fontFamily: 'Baloo2', fontSize: size, fontWeight: weight, color: color, height: 1);
 
 TextStyle sectionStyle() =>
     const TextStyle(fontFamily: 'Poppins', fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.teal);

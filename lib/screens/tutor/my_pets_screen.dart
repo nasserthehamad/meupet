@@ -29,24 +29,35 @@ class MyPetsScreen extends StatelessWidget {
           return ListView(
             padding: EdgeInsets.zero,
             children: [
-              PetHeader(title: u?.name.split(' ').first, photo: u?.photo),
-              const SectionTitle('Meus Pets'),
-              if (!snap.hasData)
-                const Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator()))
-              else if (pets.isEmpty)
-                const EmptyState(icon: Icons.pets_rounded, text: 'Você ainda não cadastrou nenhum pet.\nToque em "Novo pet" para começar!')
-              else
-                GridView.count(
-                  crossAxisCount: 3,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  childAspectRatio: 0.66,
-                  children: [for (final p in pets) _PetCell(pet: p)],
-                ),
-              const SectionTitle('Agendamentos Próximos'),
-              const UpcomingAppointments(limit: 3),
-              const SizedBox(height: 90),
+              PetHeader(title: u?.name, photo: u?.photo),
+              SnakeBand(
+                index: 1,
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  const SectionTitle('Meus Pets'),
+                  if (!snap.hasData)
+                    const Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator()))
+                  else if (pets.isEmpty)
+                    const EmptyState(icon: Icons.pets_rounded, text: 'Você ainda não cadastrou nenhum pet.\nToque em "Novo pet" para começar!')
+                  else
+                    GridView.count(
+                      crossAxisCount: 3,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      childAspectRatio: 0.7,
+                      children: [for (final p in pets) _PetCell(pet: p)],
+                    ),
+                ]),
+              ),
+              const SnakeBand(
+                index: 2,
+                roundBottom: false,
+                padding: EdgeInsets.only(top: 6, bottom: 100),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  SectionTitle('Agendamentos Próximos'),
+                  UpcomingAppointments(limit: 3),
+                ]),
+              ),
             ],
           );
         },
@@ -70,12 +81,12 @@ class _PetCell extends StatelessWidget {
       GestureDetector(
         onTap: () => _open(context, 0),
         child: Stack(alignment: Alignment.bottomCenter, children: [
-          PhotoAvatar(photo: pet.photo, size: 96, border: Colors.white),
+          PhotoAvatar(photo: pet.photo, size: 96, border: AppColors.bg),
           Container(
             margin: const EdgeInsets.only(bottom: 4),
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
             decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.85), borderRadius: BorderRadius.circular(10)),
-            child: Text(pet.name, style: logoStyle(15, AppColors.teal)),
+            child: Text(pet.name, style: scriptStyle(16, AppColors.teal)),
           ),
         ]),
       ),

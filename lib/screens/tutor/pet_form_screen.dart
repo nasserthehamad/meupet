@@ -84,6 +84,9 @@ class _PetFormScreenState extends State<PetFormScreen> {
         padding: EdgeInsets.zero,
         children: [
           PetHeader(showBack: true, title: _editing ? 'Editar pet' : 'Novo pet', photo: Session.current.value?.photo),
+          SnakeBand(
+            index: 1, padding: const EdgeInsets.only(top: 10, bottom: 30),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Center(child: PhotoPickerAvatar(photo: _photo, onPicked: (b) => setState(() => _photo = b))),
           Padding(
             padding: const EdgeInsets.all(20),
@@ -141,6 +144,8 @@ class _PetFormScreenState extends State<PetFormScreen> {
                 ),
               ],
               const SizedBox(height: 30),
+            ]),
+          ),
             ]),
           ),
         ],

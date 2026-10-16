@@ -44,7 +44,11 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
               ),
               Image.asset('assets/images/adocao_banner.png', fit: BoxFit.fitWidth),
-              const SizedBox(height: 10),
+              SnakeBand(
+                index: 1,
+                roundTop: false,
+                padding: const EdgeInsets.only(top: 12, bottom: 100),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               SizedBox(
                 height: 40,
                 child: ListView(
@@ -92,7 +96,8 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
                       ),
                   ],
                 ),
-              const SizedBox(height: 90),
+                ]),
+              ),
             ],
           );
         },
@@ -121,7 +126,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           PhotoAvatar(photo: a.photo, size: 150, border: AppColors.purple),
           const SizedBox(height: 10),
-          Text(a.name, style: logoStyle(28, AppColors.purple)),
+          Text(a.name, style: scriptStyle(30, AppColors.purple)),
           Text('${a.species} · ${a.sex == 'F' ? 'Fêmea' : 'Macho'} · ${a.age}${a.city.isNotEmpty ? ' · ${a.city}' : ''}',
               style: const TextStyle(color: AppColors.muted)),
           const SizedBox(height: 10),
@@ -207,6 +212,9 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
         padding: EdgeInsets.zero,
         children: [
           PetHeader(showBack: true, title: 'Doar um pet', photo: Session.current.value?.photo),
+          SnakeBand(
+            index: 1, padding: const EdgeInsets.only(top: 10, bottom: 30),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Center(child: PhotoPickerAvatar(photo: _photo, onPicked: (b) => setState(() => _photo = b))),
           Padding(
             padding: const EdgeInsets.all(20),
@@ -225,6 +233,8 @@ class _AdoptionFormScreenState extends State<AdoptionFormScreen> {
               const SizedBox(height: 20),
               OrangeButton(label: 'Publicar', loading: _saving, onPressed: _save, icon: Icons.favorite_rounded),
               const SizedBox(height: 30),
+            ]),
+          ),
             ]),
           ),
         ],

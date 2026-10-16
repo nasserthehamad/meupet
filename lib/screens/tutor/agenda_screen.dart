@@ -23,18 +23,28 @@ class AgendaScreen extends StatelessWidget {
           padding: EdgeInsets.zero,
           children: [
             PetHeader(title: 'Agendamentos', photo: Session.current.value?.photo),
-            const SectionTitle('Próximos'),
-            if (!snap.hasData)
-              const Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator()))
-            else if (upcoming.isEmpty)
-              const EmptyState(icon: Icons.event_available_rounded, text: 'Nenhum agendamento.\nEscolha um serviço na tela Início para agendar.')
-            else
-              for (final a in upcoming) TutorAppointmentTile(a: a),
-            if (past.isNotEmpty) ...[
-              const SectionTitle('Histórico'),
-              for (final a in past) TutorAppointmentTile(a: a, compact: true),
-            ],
-            const SizedBox(height: 30),
+            SnakeBand(
+              index: 1,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                const SectionTitle('Próximos'),
+                if (!snap.hasData)
+                  const Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator()))
+                else if (upcoming.isEmpty)
+                  const EmptyState(icon: Icons.event_available_rounded, text: 'Nenhum agendamento.\nEscolha um serviço na tela Início para agendar.')
+                else
+                  for (final a in upcoming) TutorAppointmentTile(a: a),
+              ]),
+            ),
+            if (past.isNotEmpty)
+              SnakeBand(
+                index: 2,
+                roundBottom: false,
+                padding: const EdgeInsets.only(top: 6, bottom: 40),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  const SectionTitle('Histórico'),
+                  for (final a in past) TutorAppointmentTile(a: a, compact: true),
+                ]),
+              ),
           ],
         );
       },

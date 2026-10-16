@@ -48,6 +48,12 @@ flutter:
           weight: 600
         - asset: assets/fonts/Baloo2-ExtraBold.ttf
           weight: 800
+    - family: CaveatBrush
+      fonts:
+        - asset: assets/fonts/CaveatBrush-Regular.ttf
+    - family: Kaushan
+      fonts:
+        - asset: assets/fonts/KaushanScript-Regular.ttf
 
 flutter_launcher_icons:
   android: "launcher_icon"

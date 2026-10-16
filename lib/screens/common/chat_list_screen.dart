@@ -22,6 +22,9 @@ class ChatListScreen extends StatelessWidget {
           padding: EdgeInsets.zero,
           children: [
             PetHeader(title: 'Conversas', photo: Session.current.value?.photo),
+            SnakeBand(
+              index: 1, padding: const EdgeInsets.only(top: 12, bottom: 30),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             if (!snap.hasData)
               const Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator()))
             else if (docs.isEmpty)
@@ -29,6 +32,8 @@ class ChatListScreen extends StatelessWidget {
             else
               for (final d in docs) _tile(context, d, me),
             const SizedBox(height: 30),
+              ]),
+            ),
           ],
         );
       },

@@ -20,11 +20,16 @@ class LogoText extends StatelessWidget {
   }
 }
 
-/// Cabeçalho branco curvo com o logo, título manuscrito e avatar.
+const double kBandRadius = 46;
+
+/// Cabeçalho cinza do protótipo: trilha de patinhas, logo, título manuscrito
+/// e avatar. O canto inferior esquerdo é arredondado e "encaixa" na primeira
+/// faixa branca (efeito em S).
 class PetHeader extends StatelessWidget {
   final String? title;
   final String? subtitle;
   final String? photo;
+  final String? avatarLabel;
   final IconData fallbackIcon;
   final bool showBack;
   final List<Widget> actions;
@@ -35,6 +40,7 @@ class PetHeader extends StatelessWidget {
     this.title,
     this.subtitle,
     this.photo,
+    this.avatarLabel,
     this.fallbackIcon = Icons.person_rounded,
     this.showBack = false,
     this.actions = const [],
@@ -44,45 +50,72 @@ class PetHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.of(context).padding.top;
-    return ClipPath(
-      clipper: _CurveClipper(),
+    return ColoredBox(
+      color: Colors.white,
       child: Container(
-        color: Colors.white,
-        padding: EdgeInsets.fromLTRB(12, top + 8, 16, 34),
+        decoration: const BoxDecoration(
+          color: AppColors.bg,
+          borderRadius: BorderRadius.only(bottomLeft: Radius.circular(kBandRadius)),
+        ),
+        padding: EdgeInsets.fromLTRB(14, top + 10, 14, bottom == null ? 26 : 18),
         child: Stack(
           children: [
-            const Positioned(left: 40, top: 30, child: _Paws()),
+            const Positioned.fill(child: IgnorePointer(child: PawTrail())),
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
                   children: [
                     if (showBack)
-                      IconButton(
-                        onPressed: () => Navigator.of(context).maybePop(),
-                        icon: const Icon(Icons.arrow_back_rounded, color: AppColors.teal),
+                      Material(
+                        color: Colors.white,
+                        shape: const CircleBorder(),
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: () => Navigator.of(context).maybePop(),
+                          child: const Padding(
+                            padding: EdgeInsets.all(9),
+                            child: Icon(Icons.arrow_back_rounded, color: AppColors.muted),
+                          ),
+                        ),
                       )
                     else
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          const LogoText(size: 24),
+                          const LogoText(size: 28),
                           if (title != null)
                             Text(
                               title!,
                               textAlign: TextAlign.center,
-                              style: logoStyle(22, AppColors.text).copyWith(fontWeight: FontWeight.w600),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: scriptStyle(23, const Color(0xFF3E4446)),
                             ),
                           if (subtitle != null)
-                            Text(subtitle!,
-                                style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(subtitle!,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+                            ),
                         ],
                       ),
                     ),
                     ...actions,
-                    PhotoAvatar(photo: photo, size: 56, fallbackIcon: fallbackIcon),
+                    Stack(alignment: Alignment.bottomCenter, children: [
+                      PhotoAvatar(photo: photo, size: 82, fallbackIcon: fallbackIcon, border: Colors.white),
+                      if (avatarLabel != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(avatarLabel!,
+                              style: scriptStyle(17, AppColors.teal).copyWith(
+                                shadows: const [Shadow(color: Colors.white, blurRadius: 6)],
+                              )),
+                        ),
+                    ]),
                   ],
                 ),
                 if (bottom != null) ...[const SizedBox(height: 12), bottom!],
@@ -95,34 +128,100 @@ class PetHeader extends StatelessWidget {
   }
 }
 
-class _Paws extends StatelessWidget {
-  const _Paws();
+/// Trilha de patinhas brancas descendo na diagonal (como no protótipo).
+class PawTrail extends StatelessWidget {
+  final Color color;
+  const PawTrail({super.key, this.color = Colors.white});
   @override
-  Widget build(BuildContext context) {
-    final c = AppColors.muted.withValues(alpha: 0.25);
-    return Column(
-      children: [
-        Icon(Icons.pets, size: 12, color: c),
-        Padding(padding: const EdgeInsets.only(left: 18), child: Icon(Icons.pets, size: 12, color: c)),
-        Icon(Icons.pets, size: 12, color: c),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => CustomPaint(painter: _PawTrailPainter(color));
 }
 
-class _CurveClipper extends CustomClipper<Path> {
+class _PawTrailPainter extends CustomPainter {
+  final Color color;
+  _PawTrailPainter(this.color);
+
   @override
-  Path getClip(Size s) {
-    final p = Path()..lineTo(0, s.height - 10);
-    p.quadraticBezierTo(s.width * 0.15, s.height - 34, s.width * 0.5, s.height - 22);
-    p.quadraticBezierTo(s.width * 0.85, s.height - 10, s.width, s.height - 30);
-    p.lineTo(s.width, 0);
-    p.close();
-    return p;
+  void paint(Canvas canvas, Size size) {
+    const icon = Icons.pets;
+    final start = Offset(size.width * 0.24, 4);
+    final end = Offset(size.width * 0.42, size.height - 4);
+    const steps = 8;
+    final dir = end - start;
+    final len = dir.distance;
+    final n = Offset(-dir.dy / len, dir.dx / len); // perpendicular
+    final angle = dir.direction - 1.5708; // patinhas "andando" ao longo da trilha
+    for (var i = 0; i < steps; i++) {
+      final t = (i + 0.5) / steps;
+      final side = i.isEven ? 1.0 : -1.0;
+      final p = start + dir * t + n * (7 * side);
+      final tp = TextPainter(
+        text: TextSpan(
+          text: String.fromCharCode(icon.codePoint),
+          style: TextStyle(
+            fontFamily: icon.fontFamily,
+            package: icon.fontPackage,
+            fontSize: 15,
+            color: color.withValues(alpha: 0.95),
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      canvas.save();
+      canvas.translate(p.dx, p.dy);
+      canvas.rotate(angle + 3.1416 + (side * 0.25));
+      tp.paint(canvas, Offset(-tp.width / 2, -tp.height / 2));
+      canvas.restore();
+    }
   }
 
   @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+  bool shouldRepaint(covariant _PawTrailPainter old) => old.color != color;
+}
+
+/// Cor da faixa atual (para os cartões se adaptarem).
+class BandScope extends InheritedWidget {
+  final Color color;
+  const BandScope({super.key, required this.color, required super.child});
+  static Color? of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<BandScope>()?.color;
+  @override
+  bool updateShouldNotify(BandScope old) => old.color != color;
+}
+
+/// Faixa do efeito em S do protótipo. Índices ímpares = branca, arredondada
+/// à direita; pares = cinza, arredondada à esquerda. O cabeçalho é o índice 0.
+class SnakeBand extends StatelessWidget {
+  final int index;
+  final Widget child;
+  final EdgeInsets padding;
+  final bool roundTop;
+  final bool roundBottom;
+  const SnakeBand({
+    super.key,
+    required this.index,
+    required this.child,
+    this.padding = const EdgeInsets.only(top: 6, bottom: 22),
+    this.roundTop = true,
+    this.roundBottom = true,
+  });
+
+  bool get isWhite => index.isOdd;
+
+  @override
+  Widget build(BuildContext context) {
+    const r = Radius.circular(kBandRadius);
+    final color = isWhite ? Colors.white : AppColors.bg;
+    final radius = isWhite
+        ? BorderRadius.only(topRight: roundTop ? r : Radius.zero, bottomRight: roundBottom ? r : Radius.zero)
+        : BorderRadius.only(topLeft: roundTop ? r : Radius.zero, bottomLeft: roundBottom ? r : Radius.zero);
+    return ColoredBox(
+      color: isWhite ? AppColors.bg : Colors.white,
+      child: Container(
+        decoration: BoxDecoration(color: color, borderRadius: radius),
+        padding: padding,
+        child: BandScope(color: color, child: child),
+      ),
+    );
+  }
 }
 
 class PhotoAvatar extends StatelessWidget {
@@ -235,7 +334,7 @@ class SectionTitle extends StatelessWidget {
   }
 }
 
-/// Bloco branco arredondado (as "ondas" cinza/brancas do protótipo).
+/// Cartão arredondado. Fica branco sobre faixa cinza e cinza-claro sobre faixa branca.
 class WhiteBlock extends StatelessWidget {
   final Widget child;
   final EdgeInsets padding;
@@ -248,14 +347,17 @@ class WhiteBlock extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
+    final onWhite = BandScope.of(context) == Colors.white;
     return Container(
       margin: margin,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
+        boxShadow: onWhite
+            ? null
+            : [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
       ),
       child: Material(
-        color: Colors.white,
+        color: onWhite ? const Color(0xFFF1F4F4) : Colors.white,
         borderRadius: BorderRadius.circular(22),
         clipBehavior: Clip.antiAlias,
         child: Padding(padding: padding, child: child),

@@ -55,6 +55,9 @@ class _AtendimentosScreenState extends State<AtendimentosScreen> {
       padding: EdgeInsets.zero,
       children: [
         PetHeader(title: _groupTitle(), subtitle: u?.displayName, photo: u?.photo, fallbackIcon: Icons.storefront_rounded),
+        SnakeBand(
+          index: 1, padding: const EdgeInsets.only(top: 16, bottom: 30),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(children: [
@@ -85,6 +88,8 @@ class _AtendimentosScreenState extends State<AtendimentosScreen> {
         else
           for (final a in list) ProviderAppointmentTile(a: a),
         const SizedBox(height: 30),
+          ]),
+        ),
       ],
     );
   }
@@ -92,7 +97,7 @@ class _AtendimentosScreenState extends State<AtendimentosScreen> {
   Widget _stat(String label, String v, Color c) => Expanded(
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+          decoration: BoxDecoration(color: const Color(0xFFF1F4F4), borderRadius: BorderRadius.circular(16)),
           child: Column(children: [
             Text(v, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: c)),
             Text(label, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
@@ -115,6 +120,9 @@ class SolicitacoesScreen extends StatelessWidget {
       padding: EdgeInsets.zero,
       children: [
         PetHeader(title: 'Aceitar Agendamentos', subtitle: u?.displayName, photo: u?.photo, fallbackIcon: Icons.storefront_rounded),
+        SnakeBand(
+          index: 1, padding: const EdgeInsets.only(top: 12, bottom: 30),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         if (loading)
           const Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator()))
         else if (pending.isEmpty)
@@ -136,6 +144,8 @@ class SolicitacoesScreen extends StatelessWidget {
           for (final a in pending) ProviderAppointmentTile(a: a, pending: true),
         ],
         const SizedBox(height: 30),
+          ]),
+        ),
       ],
     );
   }

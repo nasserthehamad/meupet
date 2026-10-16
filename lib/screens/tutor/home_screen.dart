@@ -26,52 +26,65 @@ class HomeScreen extends StatelessWidget {
               photo: u?.photo,
               bottom: _SearchBox(onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen()))),
             ),
-            _Hero(onTap: onGoToPets),
-            const SectionTitle('Categoria Animal'),
-            SizedBox(
-              height: 96,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                children: [
-                  for (final s in const ['Cachorro', 'Gato', 'Coelho', 'Aves', 'Roedor'])
-                    _AnimalChip(
-                      label: s,
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AdoptionScreen(initialSpecies: s))),
-                    ),
-                ],
-              ),
-            ),
-            const SectionTitle('Categorias de Serviços'),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(children: [
-                for (final g in serviceGroups)
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ServiceGroupScreen(group: g))),
-                      child: Column(children: [
-                        Text(g.title, style: const TextStyle(color: AppColors.orange, fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 6),
-                        Container(
-                          width: 92,
-                          height: 92,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 3),
-                            image: DecorationImage(image: AssetImage(g.image), fit: BoxFit.cover),
-                          ),
+            SnakeBand(
+              index: 1,
+              padding: const EdgeInsets.only(top: 14, bottom: 22),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                _Hero(onTap: onGoToPets),
+                const SectionTitle('Categoria Animal'),
+                SizedBox(
+                  height: 96,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    children: [
+                      for (final s in const ['Cachorro', 'Gato', 'Coelho', 'Aves', 'Roedor'])
+                        _AnimalChip(
+                          label: s,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AdoptionScreen(initialSpecies: s))),
                         ),
-                      ]),
-                    ),
+                    ],
                   ),
+                ),
               ]),
             ),
-            const SizedBox(height: 18),
-            _AdoptionBanner(
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdoptionScreen())),
+            SnakeBand(
+              index: 2,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                const SectionTitle('Categorias de Serviços'),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(children: [
+                    for (final g in serviceGroups)
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ServiceGroupScreen(group: g))),
+                          child: Column(children: [
+                            Text(g.title, style: logoStyle(22, AppColors.orange)),
+                            const SizedBox(height: 6),
+                            Container(
+                              width: 92,
+                              height: 92,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 3),
+                                image: DecorationImage(image: AssetImage(g.image), fit: BoxFit.cover),
+                              ),
+                            ),
+                          ]),
+                        ),
+                      ),
+                  ]),
+                ),
+              ]),
             ),
-            const SizedBox(height: 24),
+            SnakeBand(
+              index: 3,
+              padding: const EdgeInsets.only(top: 18, bottom: 26),
+              child: _AdoptionBanner(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdoptionScreen())),
+              ),
+            ),
           ],
         );
       },
@@ -119,7 +132,7 @@ class _Hero extends StatelessWidget {
                 TextSpan(text: 'Meu', style: logoStyle(40, AppColors.teal)),
                 TextSpan(text: 'PET', style: logoStyle(40, AppColors.orange)),
               ])),
-              Text('+VIDA', style: logoStyle(26, AppColors.teal).copyWith(fontWeight: FontWeight.w400)),
+              Text('+VIDA', style: scriptStyle(24, AppColors.teal)),
               const SizedBox(height: 6),
               const Text('Tudo sobre a saúde e o cuidado do seu pet num só lugar.',
                   style: TextStyle(fontSize: 12, color: AppColors.muted)),
@@ -152,7 +165,7 @@ class _AnimalChip extends StatelessWidget {
       child: Container(
         width: 78,
         margin: const EdgeInsets.symmetric(horizontal: 4),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+        decoration: BoxDecoration(color: const Color(0xFFF1F4F4), borderRadius: BorderRadius.circular(18)),
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           CircleAvatar(
             radius: 24,

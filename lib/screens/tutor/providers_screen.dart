@@ -20,6 +20,9 @@ class ServiceGroupScreen extends StatelessWidget {
         padding: EdgeInsets.zero,
         children: [
           PetHeader(showBack: true, title: group.title.toUpperCase(), subtitle: group.subtitle, photo: Session.current.value?.photo),
+          SnakeBand(
+            index: 1, padding: const EdgeInsets.only(top: 14, bottom: 30),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Container(
             height: 150,
             margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -49,6 +52,8 @@ class ServiceGroupScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
+            ]),
+          ),
         ],
       ),
     );
@@ -70,6 +75,9 @@ class ProvidersListScreen extends StatelessWidget {
             padding: EdgeInsets.zero,
             children: [
               PetHeader(showBack: true, title: category, photo: Session.current.value?.photo),
+              SnakeBand(
+                index: 1, padding: const EdgeInsets.only(top: 12, bottom: 30),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               if (!snap.hasData)
                 const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator()))
               else if (list.isEmpty)
@@ -77,6 +85,8 @@ class ProvidersListScreen extends StatelessWidget {
               else
                 for (final p in list) ProviderTile(provider: p, category: category),
               const SizedBox(height: 24),
+                ]),
+              ),
             ],
           );
         },
@@ -131,6 +141,9 @@ class ProviderDetailScreen extends StatelessWidget {
         padding: EdgeInsets.zero,
         children: [
           PetHeader(showBack: true, title: p.displayName, photo: p.photo, fallbackIcon: Icons.storefront_rounded),
+          SnakeBand(
+            index: 1, padding: const EdgeInsets.only(top: 12, bottom: 30),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           WhiteBlock(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               if (p.description.isNotEmpty) ...[Text(p.description), const SizedBox(height: 10)],
@@ -178,6 +191,8 @@ class ProviderDetailScreen extends StatelessWidget {
             ]),
           ),
           const SizedBox(height: 30),
+            ]),
+          ),
         ],
       ),
     );
@@ -238,6 +253,9 @@ class _SearchScreenState extends State<SearchScreen> {
                   decoration: inputDeco('Serviço, nome ou cidade', icon: Icons.search_rounded),
                 ),
               ),
+              SnakeBand(
+                index: 1, padding: const EdgeInsets.only(top: 8, bottom: 30),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               if (cats.isNotEmpty) ...[
                 const SectionTitle('Categorias'),
                 for (final c in cats)
@@ -255,6 +273,8 @@ class _SearchScreenState extends State<SearchScreen> {
               else
                 for (final p in provs) ProviderTile(provider: p),
               const SizedBox(height: 24),
+                ]),
+              ),
             ],
           );
         },
@@ -338,6 +358,9 @@ class _BookingScreenState extends State<BookingScreen> {
             padding: EdgeInsets.zero,
             children: [
               PetHeader(showBack: true, title: 'Agendar', subtitle: widget.provider.displayName, photo: widget.provider.photo, fallbackIcon: Icons.storefront_rounded),
+              SnakeBand(
+                index: 1, padding: const EdgeInsets.only(top: 8, bottom: 30),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               const SectionTitle('Qual pet?'),
               if (snap.hasData && pets.isEmpty)
                 const EmptyState(icon: Icons.pets_rounded, text: 'Cadastre um pet em "Meus Pets" primeiro.')
@@ -415,6 +438,8 @@ class _BookingScreenState extends State<BookingScreen> {
                   const SizedBox(height: 20),
                   OrangeButton(label: 'Solicitar agendamento', loading: _saving, onPressed: _save, icon: Icons.send_rounded),
                   const SizedBox(height: 30),
+                ]),
+              ),
                 ]),
               ),
             ],
