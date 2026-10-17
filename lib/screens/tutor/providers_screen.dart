@@ -5,10 +5,11 @@ import '../../core/catalog.dart';
 import '../../core/db.dart';
 import '../../core/models.dart';
 import '../../core/theme.dart';
+import '../../widgets/category_grid.dart';
 import '../../widgets/common.dart';
 import '../common/chat_screen.dart';
 
-/// Tela "+CUIDADO" / "+SAÚDE" / "+PRODUTOS" com a grade de categorias.
+/// Tela de um grupo (+SAÚDE / +CUIDADO / +PRODUTO) com a grade de categorias.
 class ServiceGroupScreen extends StatelessWidget {
   final ServiceGroup group;
   const ServiceGroupScreen({super.key, required this.group});
@@ -19,40 +20,21 @@ class ServiceGroupScreen extends StatelessWidget {
       body: ListView(
         padding: EdgeInsets.zero,
         children: [
-          PetHeader(showBack: true, title: group.title.toUpperCase(), subtitle: group.subtitle, photo: Session.current.value?.photo),
+          PetHeader(showBack: true, title: group.heroTitle, subtitle: group.subtitle, photo: Session.current.value?.photo),
           SnakeBand(
-            index: 1, padding: const EdgeInsets.only(top: 14, bottom: 30),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Container(
-            height: 150,
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(22),
-              image: DecorationImage(image: AssetImage(group.image), fit: BoxFit.cover),
-            ),
-          ),
-          const SectionTitle('Categorias'),
-          GridView.count(
-            crossAxisCount: 4,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            childAspectRatio: 0.8,
-            children: [
-              for (final c in group.items)
-                InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProvidersListScreen(category: c.name))),
-                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    CircleAvatar(radius: 28, backgroundColor: AppColors.green, child: Icon(c.icon, color: Colors.white, size: 28)),
-                    const SizedBox(height: 6),
-                    Text(c.name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11)),
-                  ]),
+            index: 1,
+            padding: const EdgeInsets.fromLTRB(10, 14, 10, 30),
+            child: CategoryGrid(
+              group: group,
+              onTap: (c) => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => c.isProviderCategory
+                      ? ProvidersListScreen(title: c.name, categories: [c.name])
+                      : ProvidersListScreen(title: c.name, categories: group.providerCategories.map((e) => e.name).toList()),
                 ),
-            ],
-          ),
-          const SizedBox(height: 24),
-            ]),
+              ),
+            ),
           ),
         ],
       ),
@@ -60,31 +42,74 @@ class ServiceGroupScreen extends StatelessWidget {
   }
 }
 
+/// Lista de prestadores de uma ou mais categorias.
+/// [nearMe]: mostra primeiro os da cidade do usuário.
+/// [bookOnTap]: tocar no prestador já abre o agendamento.
 class ProvidersListScreen extends StatelessWidget {
-  final String category;
-  const ProvidersListScreen({super.key, required this.category});
+  final String title;
+  final List<String> categories;
+  final bool nearMe;
+  final bool bookOnTap;
+  const ProvidersListScreen({
+    super.key,
+    required this.title,
+    required this.categories,
+    this.nearMe = false,
+    this.bookOnTap = false,
+  });
+
+  String _norm(String s) => s.trim().toLowerCase();
 
   @override
   Widget build(BuildContext context) {
+    final myCity = _norm(Session.current.value?.city ?? '');
     return Scaffold(
       body: StreamBuilder<List<AppUser>>(
-        stream: Db.providersByCategory(category),
+        stream: Db.providersByAny(categories),
         builder: (context, snap) {
-          final list = snap.data ?? [];
+          var list = snap.data ?? [];
+          List<AppUser> others = [];
+          if (nearMe && myCity.isNotEmpty) {
+            others = list.where((p) => _norm(p.city) != myCity).toList();
+            list = list.where((p) => _norm(p.city) == myCity).toList();
+          }
+          final single = categories.length == 1 ? categories.first : null;
           return ListView(
             padding: EdgeInsets.zero,
             children: [
-              PetHeader(showBack: true, title: category, photo: Session.current.value?.photo),
+              PetHeader(showBack: true, title: title, photo: Session.current.value?.photo),
               SnakeBand(
-                index: 1, padding: const EdgeInsets.only(top: 12, bottom: 30),
+                index: 1,
+                padding: const EdgeInsets.only(top: 12, bottom: 30),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              if (!snap.hasData)
-                const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator()))
-              else if (list.isEmpty)
-                const EmptyState(icon: Icons.storefront_rounded, text: 'Ainda não há prestadores cadastrados nesta categoria.')
-              else
-                for (final p in list) ProviderTile(provider: p, category: category),
-              const SizedBox(height: 24),
+                  if (bookOnTap)
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
+                      child: Text('Escolha com quem você quer agendar:', style: TextStyle(color: AppColors.muted)),
+                    ),
+                  if (nearMe)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                      child: Text(
+                        myCity.isEmpty
+                            ? 'Informe sua cidade em Editar Perfil para ver quem está perto.'
+                            : 'Em ${Session.current.value?.city}:',
+                        style: const TextStyle(color: AppColors.muted),
+                      ),
+                    ),
+                  if (!snap.hasData)
+                    const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator()))
+                  else if (list.isEmpty && others.isEmpty)
+                    const EmptyState(icon: Icons.storefront_rounded, text: 'Ainda não há prestadores cadastrados aqui.')
+                  else ...[
+                    if (list.isEmpty && nearMe)
+                      const EmptyState(icon: Icons.location_off_rounded, text: 'Nenhum prestador na sua cidade ainda.'),
+                    for (final p in list) ProviderTile(provider: p, category: single, bookOnTap: bookOnTap),
+                    if (others.isNotEmpty) ...[
+                      const SectionTitle('Outras cidades'),
+                      for (final p in others) ProviderTile(provider: p, category: single, bookOnTap: bookOnTap),
+                    ],
+                  ],
                 ]),
               ),
             ],
@@ -98,7 +123,8 @@ class ProvidersListScreen extends StatelessWidget {
 class ProviderTile extends StatelessWidget {
   final AppUser provider;
   final String? category;
-  const ProviderTile({super.key, required this.provider, this.category});
+  final bool bookOnTap;
+  const ProviderTile({super.key, required this.provider, this.category, this.bookOnTap = false});
   @override
   Widget build(BuildContext context) {
     return WhiteBlock(
@@ -106,7 +132,11 @@ class ProviderTile extends StatelessWidget {
       child: InkWell(
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => ProviderDetailScreen(provider: provider, category: category)),
+          MaterialPageRoute(
+            builder: (_) => bookOnTap
+                ? BookingScreen(provider: provider, initialService: category)
+                : ProviderDetailScreen(provider: provider, category: category),
+          ),
         ),
         child: Row(children: [
           PhotoAvatar(photo: provider.photo, size: 56, fallbackIcon: Icons.storefront_rounded),
@@ -260,9 +290,10 @@ class _SearchScreenState extends State<SearchScreen> {
                 const SectionTitle('Categorias'),
                 for (final c in cats)
                   ListTile(
-                    leading: CircleAvatar(backgroundColor: AppColors.green, child: Icon(c.icon, color: Colors.white)),
+                    leading: CategoryCircle(cat: c, color: groupOfCategory(c.name)?.color ?? AppColors.teal, size: 42),
                     title: Text(c.name),
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProvidersListScreen(category: c.name))),
+                    onTap: () => Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => ProvidersListScreen(title: c.name, categories: [c.name]))),
                   ),
               ],
               const SectionTitle('Prestadores'),

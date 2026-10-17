@@ -1,208 +1,215 @@
 import 'package:flutter/material.dart';
 
 import '../../core/catalog.dart';
-import '../../core/db.dart';
-import '../../core/models.dart';
 import '../../core/theme.dart';
+import '../../widgets/category_grid.dart';
 import '../../widgets/common.dart';
 import 'adoption_screen.dart';
+import 'agenda_screen.dart';
 import 'providers_screen.dart';
 
-class HomeScreen extends StatelessWidget {
-  final VoidCallback onGoToPets;
-  const HomeScreen({super.key, required this.onGoToPets});
+const _homeBg = Color(0xFFDCDCDC);
+
+/// Início do tutor: "+VIDA" e o carrossel +SAÚDE / +CUIDADO / +PRODUTO,
+/// que se arrasta para o lado (como nos vídeos do protótipo).
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final _pages = PageController();
+  int _page = 0;
+
+  void _goTo(int i) => _pages.animateToPage(i, duration: const Duration(milliseconds: 450), curve: Curves.easeOutCubic);
+
+  @override
+  void dispose() {
+    _pages.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<AppUser?>(
-      valueListenable: Session.current,
-      builder: (context, u, _) {
-        final first = (u?.name ?? '').split(' ').first;
-        return ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            PetHeader(
-              subtitle: first.isEmpty ? null : 'Olá, $first!',
-              photo: u?.photo,
-              bottom: _SearchBox(onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen()))),
+    final count = serviceGroups.length + 1;
+    return Column(children: [
+      TopBar(onBell: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AgendaScreen()))),
+      Expanded(
+        child: ColoredBox(
+          color: _homeBg,
+          child: Stack(children: [
+            PageView(
+              controller: _pages,
+              onPageChanged: (i) => setState(() => _page = i),
+              children: [
+                _VidaPage(onOpenGroup: (i) => _goTo(i + 1)),
+                for (final g in serviceGroups) _GroupPage(group: g),
+              ],
             ),
-            SnakeBand(
-              index: 1,
-              padding: const EdgeInsets.only(top: 14, bottom: 22),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                _Hero(onTap: onGoToPets),
-                const SectionTitle('Categoria Animal'),
-                SizedBox(
-                  height: 96,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    children: [
-                      for (final s in const ['Cachorro', 'Gato', 'Coelho', 'Aves', 'Roedor'])
-                        _AnimalChip(
-                          label: s,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AdoptionScreen(initialSpecies: s))),
-                        ),
-                    ],
-                  ),
-                ),
-              ]),
-            ),
-            SnakeBand(
-              index: 2,
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                const SectionTitle('Categorias de Serviços'),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Row(children: [
-                    for (final g in serviceGroups)
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ServiceGroupScreen(group: g))),
-                          child: Column(children: [
-                            Text(g.title, style: logoStyle(22, AppColors.orange)),
-                            const SizedBox(height: 6),
-                            Container(
-                              width: 92,
-                              height: 92,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 3),
-                                image: DecorationImage(image: AssetImage(g.image), fit: BoxFit.cover),
-                              ),
-                            ),
-                          ]),
-                        ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 10,
+              child: IgnorePointer(
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  for (var i = 0; i < count; i++)
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: i == _page ? 12 : 9,
+                      height: i == _page ? 12 : 9,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: i == _page ? AppColors.teal : Colors.white,
+                        border: Border.all(color: Colors.white, width: 1.5),
                       ),
-                  ]),
-                ),
-              ]),
-            ),
-            SnakeBand(
-              index: 3,
-              padding: const EdgeInsets.only(top: 18, bottom: 26),
-              child: _AdoptionBanner(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdoptionScreen())),
+                    ),
+                ]),
               ),
             ),
-          ],
-        );
-      },
-    );
+          ]),
+        ),
+      ),
+    ]);
   }
 }
+
+// ---------------------------------------------------------------- elementos
 
 class _SearchBox extends StatelessWidget {
-  final VoidCallback onTap;
-  const _SearchBox({required this.onTap});
+  const _SearchBox();
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())),
       child: Container(
-        height: 44,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        height: 50,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.teal.withValues(alpha: 0.6)),
+          border: Border.all(color: AppColors.teal, width: 2),
+          color: Colors.white.withValues(alpha: 0.35),
         ),
         child: const Row(children: [
-          Expanded(child: Text('Digite a sua busca', style: TextStyle(color: AppColors.muted))),
-          Icon(Icons.search_rounded, color: AppColors.teal),
+          Expanded(child: Text('Digite a sua busca', style: TextStyle(color: Color(0xFF7E8789), fontSize: 16))),
+          Icon(Icons.search_rounded, color: AppColors.teal, size: 28),
         ]),
       ),
     );
   }
 }
 
-class _Hero extends StatelessWidget {
-  final VoidCallback onTap;
-  const _Hero({required this.onTap});
+/// Enfeites amarelos do protótipo.
+class _Blobs extends StatelessWidget {
+  const _Blobs();
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Row(children: [
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text.rich(TextSpan(children: [
-                TextSpan(text: 'Meu', style: logoStyle(40, AppColors.teal)),
-                TextSpan(text: 'PET', style: logoStyle(40, AppColors.orange)),
-              ])),
-              Text('+VIDA', style: scriptStyle(24, AppColors.teal)),
-              const SizedBox(height: 6),
-              const Text('Tudo sobre a saúde e o cuidado do seu pet num só lugar.',
-                  style: TextStyle(fontSize: 12, color: AppColors.muted)),
-            ]),
-          ),
-          Container(
-            width: 130,
-            height: 130,
-            decoration: const BoxDecoration(
+    return IgnorePointer(
+      child: Stack(children: [
+        Positioned(left: -18, top: 70, child: Image.asset('assets/ui/blob_yellow.png', width: 64)),
+        Positioned(left: 0, top: 86, child: Opacity(opacity: 0.6, child: Image.asset('assets/ui/blob_line.png', width: 52))),
+        Positioned(right: -22, top: 330, child: Image.asset('assets/ui/blob_yellow.png', width: 52)),
+        Positioned(left: -26, top: 560, child: Opacity(opacity: 0.8, child: Image.asset('assets/ui/blob_yellow.png', width: 46))),
+      ]),
+    );
+  }
+}
+
+/// "MeuPET +VIDA" e a foto redonda grande.
+class _Hero extends StatelessWidget {
+  final String word;
+  final String image;
+  const _Hero({required this.word, required this.image});
+  @override
+  Widget build(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    final circle = (w * 0.47).clamp(150.0, 240.0);
+    return SizedBox(
+      height: circle + 10,
+      child: Stack(clipBehavior: Clip.none, children: [
+        Positioned(
+          right: -16,
+          top: 0,
+          child: Container(
+            width: circle,
+            height: circle,
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: AppColors.yellow,
+              image: DecorationImage(image: AssetImage(image), fit: BoxFit.cover),
             ),
-            padding: const EdgeInsets.all(6),
-            child: const CircleAvatar(backgroundImage: AssetImage('assets/images/hero.jpg')),
           ),
-        ]),
-      ),
+        ),
+        Positioned(
+          right: circle - 30,
+          top: circle * 0.36,
+          child: Image.asset('assets/ui/paw_yellow.png', width: 26),
+        ),
+        Positioned(
+          left: 18,
+          top: circle * 0.30,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text.rich(TextSpan(children: [
+              TextSpan(text: 'Meu', style: logoStyle(58, AppColors.teal)),
+              TextSpan(text: 'PET', style: logoStyle(58, AppColors.orange)),
+            ])),
+            Transform.translate(
+              offset: const Offset(18, -10),
+              child: Text(
+                word,
+                style: scriptStyle(32, Colors.white).copyWith(
+                  shadows: const [Shadow(color: Color(0x55000000), blurRadius: 3, offset: Offset(0, 1))],
+                ),
+              ),
+            ),
+          ]),
+        ),
+      ]),
     );
   }
 }
 
-class _AnimalChip extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  const _AnimalChip({required this.label, required this.onTap});
+class _Title extends StatelessWidget {
+  final String text;
+  final Color color;
+  final VoidCallback? onSeeAll;
+  const _Title(this.text, {this.color = AppColors.teal, this.onSeeAll});
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 78,
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        decoration: BoxDecoration(color: const Color(0xFFF1F4F4), borderRadius: BorderRadius.circular(18)),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          CircleAvatar(
-            radius: 24,
-            backgroundColor: AppColors.teal.withValues(alpha: 0.12),
-            child: Icon(iconForSpecies(label), color: AppColors.teal),
-          ),
-          const SizedBox(height: 6),
-          Text(label, style: const TextStyle(fontSize: 12)),
-        ]),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 6, 10, 6),
+      child: Row(children: [
+        Expanded(child: Text(text, style: TextStyle(fontSize: 21, fontWeight: FontWeight.w500, color: color))),
+        if (onSeeAll != null) SeeAll(onTap: onSeeAll!),
+      ]),
     );
   }
 }
 
 class _AdoptionBanner extends StatelessWidget {
-  final VoidCallback onTap;
-  const _AdoptionBanner({required this.onTap});
+  const _AdoptionBanner();
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      key: const Key('adocao'),
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdoptionScreen())),
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(color: AppColors.teal, borderRadius: BorderRadius.circular(20)),
+        margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+        decoration: BoxDecoration(color: AppColors.teal, borderRadius: BorderRadius.circular(16)),
         clipBehavior: Clip.antiAlias,
         child: Column(children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 14, 14, 8),
+            padding: const EdgeInsets.fromLTRB(20, 16, 14, 6),
             child: Row(children: [
               const Expanded(
                 child: Text('Adoção PET\nfacilitada',
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700, height: 1.1)),
+                    style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600, height: 1.15)),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                child: const Text('Adote agora!', style: TextStyle(color: AppColors.teal, fontWeight: FontWeight.w700)),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+                child: const Text('Adote agora!', style: TextStyle(color: Color(0xFF6B7477), fontSize: 15)),
               ),
             ]),
           ),
@@ -210,5 +217,150 @@ class _AdoptionBanner extends StatelessWidget {
         ]),
       ),
     );
+  }
+}
+
+// ------------------------------------------------------------------ páginas
+
+class _VidaPage extends StatelessWidget {
+  final ValueChanged<int> onOpenGroup;
+  const _VidaPage({required this.onOpenGroup});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(children: [
+      const Positioned.fill(child: _Blobs()),
+      ListView(
+        padding: const EdgeInsets.only(bottom: 44),
+        children: [
+          const Padding(padding: EdgeInsets.fromLTRB(16, 16, 16, 12), child: _SearchBox()),
+          const _Hero(word: '+VIDA', image: 'assets/images/hero.jpg'),
+          _Title('Categoria Animal',
+              onSeeAll: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdoptionScreen()))),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(children: [
+              for (final a in animalCategories)
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => AdoptionScreen(initialSpecies: a.$2)),
+                    ),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(color: const Color(0xFFEEEEEE), borderRadius: BorderRadius.circular(16)),
+                      child: Column(children: [
+                        CircleAvatar(radius: 30, backgroundImage: AssetImage(a.$3)),
+                        const SizedBox(height: 8),
+                        Text(a.$1, style: const TextStyle(fontSize: 15, color: Color(0xFF6B7477))),
+                      ]),
+                    ),
+                  ),
+                ),
+            ]),
+          ),
+          const SizedBox(height: 12),
+          const _Title('Categorias de Serviços'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              for (var i = 0; i < serviceGroups.length; i++)
+                Expanded(
+                  child: GestureDetector(
+                    key: Key('grupo_${serviceGroups[i].key}'),
+                    onTap: () => onOpenGroup(i),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 5),
+                      padding: const EdgeInsets.fromLTRB(6, 10, 6, 12),
+                      decoration: BoxDecoration(color: const Color(0xFFEEEEEE), borderRadius: BorderRadius.circular(16)),
+                      child: Column(children: [
+                        Text(serviceGroups[i].title,
+                            style: const TextStyle(color: AppColors.orange, fontSize: 16, fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 8),
+                        LayoutBuilder(
+                          builder: (context, c) => CircleAvatar(
+                            radius: (c.maxWidth / 2 - 4).clamp(30.0, 56.0),
+                            backgroundImage: AssetImage(serviceGroups[i].image),
+                          ),
+                        ),
+                      ]),
+                    ),
+                  ),
+                ),
+            ]),
+          ),
+          const SizedBox(height: 6),
+          const _AdoptionBanner(),
+        ],
+      ),
+    ]);
+  }
+}
+
+class _GroupPage extends StatelessWidget {
+  final ServiceGroup group;
+  const _GroupPage({required this.group});
+
+  void _open(BuildContext context, ServiceCat cat) {
+    final cats = group.providerCategories.map((c) => c.name).toList();
+    Widget page;
+    switch (cat.kind) {
+      case CatKind.provider:
+        page = ProvidersListScreen(title: cat.name, categories: [cat.name]);
+        break;
+      case CatKind.nearby:
+        page = ProvidersListScreen(title: 'Perto de mim', categories: cats, nearMe: true);
+        break;
+      case CatKind.reviews:
+        page = ProvidersListScreen(title: 'Avaliações', categories: cats);
+        break;
+      case CatKind.schedule:
+        page = ProvidersListScreen(title: 'Agendar', categories: cats, bookOnTap: true);
+        break;
+      case CatKind.averageCost:
+        showSnack(context, 'O custo médio dos serviços chega na próxima etapa.');
+        return;
+    }
+    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final titleColor = group.key == 'produtos' ? group.color : AppColors.teal;
+    return Stack(children: [
+      const Positioned.fill(child: _Blobs()),
+      ListView(
+        padding: const EdgeInsets.only(bottom: 44),
+        children: [
+          const Padding(padding: EdgeInsets.fromLTRB(16, 16, 16, 12), child: _SearchBox()),
+          _Hero(word: group.heroTitle, image: group.hero),
+          _Title('Categorias', color: titleColor),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: CategoryGrid(group: group, onTap: (c) => _open(context, c)),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 10),
+              child: SeeAll(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ProvidersListScreen(
+                      title: group.title,
+                      categories: group.providerCategories.map((c) => c.name).toList(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const _AdoptionBanner(),
+        ],
+      ),
+    ]);
   }
 }

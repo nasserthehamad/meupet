@@ -36,6 +36,7 @@ class AppUser {
   final String address;
   final String description;
   final List<String> categories;
+  final List<String> favorites;
 
   AppUser({
     required this.id,
@@ -49,6 +50,7 @@ class AppUser {
     this.address = '',
     this.description = '',
     this.categories = const [],
+    this.favorites = const [],
   });
 
   bool get isProvider => role == 'prestador';
@@ -68,6 +70,7 @@ class AppUser {
       address: m['address'] ?? '',
       description: m['description'] ?? '',
       categories: List<String>.from(m['categories'] ?? const []),
+      favorites: List<String>.from(m['favorites'] ?? const []),
     );
   }
 }

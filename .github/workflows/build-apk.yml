@@ -44,6 +44,11 @@ jobs:
           # Permissão de internet e nome do app
           sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <application#' android/app/src/main/AndroidManifest.xml
           sed -i 's/android:label="meupet"/android:label="Meu Pet+"/' android/app/src/main/AndroidManifest.xml
+          # Sempre em retrato (também no BlueStacks)
+          sed -i '0,/<activity/s//<activity android:screenOrientation="portrait"/' android/app/src/main/AndroidManifest.xml
+          # Ligar (tel:) e abrir links
+          sed -i 's#</manifest>#    <queries><intent><action android:name="android.intent.action.DIAL"/><data android:scheme="tel"/></intent><intent><action android:name="android.intent.action.VIEW"/><data android:scheme="https"/></intent></queries>\n</manifest>#' android/app/src/main/AndroidManifest.xml
+          grep -n "screenOrientation\|queries" android/app/src/main/AndroidManifest.xml || true
           grep -n "applicationId\|minSdk" android/app/build.gradle* || true
 
       - name: Chave de assinatura fixa (permite atualizar o app sem desinstalar)
@@ -100,7 +105,7 @@ jobs:
           fi
 
       - name: Build APK
-        run: bash tool/ci_step.sh "build apk" flutter build apk --release
+        run: bash tool/ci_step.sh "build apk" flutter build apk --release --build-name=1.0.${{ github.run_number }} --build-number=${{ github.run_number }} --dart-define=APP_VERSION=1.0.${{ github.run_number }}
 
       - name: Renomear
         run: cp build/app/outputs/flutter-apk/app-release.apk MeuPet.apk

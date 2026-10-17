@@ -77,6 +77,13 @@ class Db {
       .map((q) => q.docs.map(AppUser.fromDoc).toList()
         ..sort((a, b) => a.displayName.compareTo(b.displayName)));
 
+  /// Prestadores que oferecem qualquer uma das categorias (máx. 30).
+  static Stream<List<AppUser>> providersByAny(List<String> cats) => users
+      .where('categories', arrayContainsAny: cats.take(30).toList())
+      .snapshots()
+      .map((q) => q.docs.map(AppUser.fromDoc).toList()
+        ..sort((a, b) => a.displayName.compareTo(b.displayName)));
+
   static Stream<List<AppUser>> allProviders() => users
       .where('role', isEqualTo: 'prestador')
       .snapshots()

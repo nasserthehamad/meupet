@@ -22,9 +22,113 @@ class LogoText extends StatelessWidget {
 
 const double kBandRadius = 46;
 
-/// Cabeçalho cinza do protótipo: trilha de patinhas, logo, título manuscrito
-/// e avatar. O canto inferior esquerdo é arredondado e "encaixa" na primeira
-/// faixa branca (efeito em S).
+/// Botão ☰ (círculo com contorno) que abre o menu lateral.
+class MenuButton extends StatelessWidget {
+  final Color color;
+  const MenuButton({super.key, this.color = AppColors.teal});
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      key: const Key('menu'),
+      customBorder: const CircleBorder(),
+      onTap: () => Scaffold.maybeOf(context)?.openDrawer(),
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: color, width: 2.2)),
+        child: Icon(Icons.menu_rounded, color: color, size: 26),
+      ),
+    );
+  }
+}
+
+/// Sino de avisos (círculo preenchido com bolinha laranja).
+class BellButton extends StatelessWidget {
+  final Color color;
+  final VoidCallback? onTap;
+  final bool dot;
+  const BellButton({super.key, this.color = AppColors.teal, this.onTap, this.dot = true});
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      key: const Key('bell'),
+      customBorder: const CircleBorder(),
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+        child: Stack(alignment: Alignment.center, children: [
+          const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 26),
+          if (dot)
+            const Positioned(
+              top: 10,
+              right: 12,
+              child: CircleAvatar(radius: 4, backgroundColor: AppColors.orange),
+            ),
+        ]),
+      ),
+    );
+  }
+}
+
+class _BackCircle extends StatelessWidget {
+  final Color background;
+  const _BackCircle({required this.background});
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: background,
+      shape: const CircleBorder(),
+      child: InkWell(
+        key: const Key('back'),
+        customBorder: const CircleBorder(),
+        onTap: () => Navigator.of(context).maybePop(),
+        child: const Padding(
+          padding: EdgeInsets.all(10),
+          child: Icon(Icons.arrow_back_rounded, color: AppColors.muted),
+        ),
+      ),
+    );
+  }
+}
+
+/// Barra branca do topo da Início/Adoção: ☰, patinhas, logo e sino.
+class TopBar extends StatelessWidget {
+  final Color color;
+  final VoidCallback? onBell;
+  final bool showBack;
+  const TopBar({super.key, this.color = AppColors.teal, this.onBell, this.showBack = false});
+  @override
+  Widget build(BuildContext context) {
+    final top = MediaQuery.of(context).padding.top;
+    return Container(
+      color: Colors.white,
+      padding: EdgeInsets.fromLTRB(14, top + 8, 14, 10),
+      child: Stack(children: [
+        Positioned(
+          left: 56,
+          top: -4,
+          bottom: -6,
+          width: 60,
+          child: IgnorePointer(child: PawTrail(color: AppColors.muted.withValues(alpha: 0.45), small: true)),
+        ),
+        Row(children: [
+          if (showBack) const _BackCircle(background: Color(0xFFEDEFF0)) else MenuButton(color: color),
+          const Expanded(child: Center(child: LogoText(size: 30))),
+          BellButton(color: color, onTap: onBell),
+        ]),
+      ]),
+    );
+  }
+}
+
+const double kBandRadius = 46;
+
+/// Cabeçalho do protótipo com trilha de patinhas, logo, título manuscrito e
+/// avatar. Cinza (padrão) com canto inferior esquerdo arredondado, ou branco
+/// ([white]) com o canto inferior direito arredondado — sempre "encaixando" na
+/// faixa seguinte (efeito em S).
 class PetHeader extends StatelessWidget {
   final String? title;
   final String? subtitle;
@@ -32,8 +136,11 @@ class PetHeader extends StatelessWidget {
   final String? avatarLabel;
   final IconData fallbackIcon;
   final bool showBack;
+  final bool showMenu;
+  final bool white;
   final List<Widget> actions;
   final Widget? bottom;
+  final Widget? avatarOverride;
 
   const PetHeader({
     super.key,
@@ -43,56 +150,57 @@ class PetHeader extends StatelessWidget {
     this.avatarLabel,
     this.fallbackIcon = Icons.person_rounded,
     this.showBack = false,
+    this.showMenu = false,
+    this.white = false,
     this.actions = const [],
     this.bottom,
+    this.avatarOverride,
   });
 
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.of(context).padding.top;
+    final color = white ? Colors.white : AppColors.bg;
+    final outer = white ? AppColors.bg : Colors.white;
+    const r = Radius.circular(kBandRadius);
     return ColoredBox(
-      color: Colors.white,
+      color: outer,
       child: Container(
-        decoration: const BoxDecoration(
-          color: AppColors.bg,
-          borderRadius: BorderRadius.only(bottomLeft: Radius.circular(kBandRadius)),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: white ? const BorderRadius.only(bottomRight: r) : const BorderRadius.only(bottomLeft: r),
         ),
-        padding: EdgeInsets.fromLTRB(14, top + 10, 14, bottom == null ? 26 : 18),
+        padding: EdgeInsets.fromLTRB(14, top + 10, 14, bottom == null ? 24 : 18),
         child: Stack(
           children: [
-            const Positioned.fill(child: IgnorePointer(child: PawTrail())),
+            Positioned.fill(
+              child: IgnorePointer(
+                child: PawTrail(color: white ? AppColors.muted.withValues(alpha: 0.4) : Colors.white),
+              ),
+            ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
                   children: [
-                    if (showBack)
-                      Material(
-                        color: Colors.white,
-                        shape: const CircleBorder(),
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: () => Navigator.of(context).maybePop(),
-                          child: const Padding(
-                            padding: EdgeInsets.all(9),
-                            child: Icon(Icons.arrow_back_rounded, color: AppColors.muted),
-                          ),
-                        ),
-                      )
-                    else
-                      const SizedBox(width: 6),
+                    Column(mainAxisSize: MainAxisSize.min, children: [
+                      if (showMenu) const MenuButton(),
+                      if (showMenu && showBack) const SizedBox(height: 8),
+                      if (showBack) _BackCircle(background: white ? const Color(0xFFEDEFF0) : Colors.white),
+                      if (!showMenu && !showBack) const SizedBox(width: 6),
+                    ]),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          const LogoText(size: 28),
+                          const LogoText(size: 30),
                           if (title != null)
                             Text(
                               title!,
                               textAlign: TextAlign.center,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: scriptStyle(23, const Color(0xFF3E4446)),
+                              style: scriptStyle(24, const Color(0xFF3E4446)),
                             ),
                           if (subtitle != null)
                             Padding(
@@ -105,17 +213,23 @@ class PetHeader extends StatelessWidget {
                       ),
                     ),
                     ...actions,
-                    Stack(alignment: Alignment.bottomCenter, children: [
-                      PhotoAvatar(photo: photo, size: 82, fallbackIcon: fallbackIcon, border: Colors.white),
-                      if (avatarLabel != null)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Text(avatarLabel!,
-                              style: scriptStyle(17, AppColors.teal).copyWith(
-                                shadows: const [Shadow(color: Colors.white, blurRadius: 6)],
-                              )),
-                        ),
-                    ]),
+                    avatarOverride ??
+                        Stack(alignment: Alignment.bottomCenter, children: [
+                          PhotoAvatar(
+                            photo: photo,
+                            size: 92,
+                            fallbackIcon: fallbackIcon,
+                            border: white ? AppColors.bg : Colors.white,
+                          ),
+                          if (avatarLabel != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Text(avatarLabel!,
+                                  style: scriptStyle(18, AppColors.teal).copyWith(
+                                    shadows: const [Shadow(color: Colors.white, blurRadius: 6)],
+                                  )),
+                            ),
+                        ]),
                   ],
                 ),
                 if (bottom != null) ...[const SizedBox(height: 12), bottom!],
@@ -131,39 +245,41 @@ class PetHeader extends StatelessWidget {
 /// Trilha de patinhas brancas descendo na diagonal (como no protótipo).
 class PawTrail extends StatelessWidget {
   final Color color;
-  const PawTrail({super.key, this.color = Colors.white});
+  final bool small;
+  const PawTrail({super.key, this.color = Colors.white, this.small = false});
   @override
-  Widget build(BuildContext context) => CustomPaint(painter: _PawTrailPainter(color));
+  Widget build(BuildContext context) => CustomPaint(painter: _PawTrailPainter(color, small));
 }
 
 class _PawTrailPainter extends CustomPainter {
   final Color color;
-  _PawTrailPainter(this.color);
+  final bool small;
+  _PawTrailPainter(this.color, this.small);
 
   @override
   void paint(Canvas canvas, Size size) {
     const icon = Icons.pets;
     // Trilha em curva: desce pela esquerda do logo e termina embaixo, no centro.
-    final p0 = Offset(size.width * 0.27, 6);
-    final p1 = Offset(size.width * 0.06, size.height * 0.62);
-    final p2 = Offset(size.width * 0.44, size.height - 4);
+    final p0 = small ? Offset(size.width * 0.75, 2) : Offset(size.width * 0.27, 6);
+    final p1 = small ? Offset(size.width * 0.05, size.height * 0.5) : Offset(size.width * 0.06, size.height * 0.62);
+    final p2 = small ? Offset(size.width * 0.35, size.height - 2) : Offset(size.width * 0.44, size.height - 4);
     Offset at(double t) => p0 * ((1 - t) * (1 - t)) + p1 * (2 * (1 - t) * t) + p2 * (t * t);
     Offset tangent(double t) => (p1 - p0) * (2 * (1 - t)) + (p2 - p1) * (2 * t);
-    const steps = 8;
+    final steps = small ? 4 : 8;
     for (var i = 0; i < steps; i++) {
       final t = 0.04 + i * (0.92 / (steps - 1));
       final side = i.isEven ? 1.0 : -1.0;
       final tg = tangent(t);
       final len = tg.distance;
       final n = Offset(-tg.dy / len, tg.dx / len);
-      final p = at(t) + n * (9 * side);
+      final p = at(t) + n * ((small ? 5 : 9) * side);
       final tp = TextPainter(
         text: TextSpan(
           text: String.fromCharCode(icon.codePoint),
           style: TextStyle(
             fontFamily: icon.fontFamily,
             package: icon.fontPackage,
-            fontSize: 20,
+            fontSize: small ? 13 : 20,
             color: color,
           ),
         ),
@@ -178,7 +294,7 @@ class _PawTrailPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _PawTrailPainter old) => old.color != color;
+  bool shouldRepaint(covariant _PawTrailPainter old) => old.color != color || old.small != small;
 }
 
 /// Cor da faixa atual (para os cartões se adaptarem).
@@ -454,22 +570,34 @@ class StatusChip extends StatelessWidget {
 /// Selo de data no estilo "calendário vermelho" do protótipo.
 class DateBadge extends StatelessWidget {
   final DateTime? date;
-  const DateBadge(this.date, {super.key});
+  final bool big;
+  const DateBadge(this.date, {super.key, this.big = false});
   @override
   Widget build(BuildContext context) {
+    final w = big ? 56.0 : 46.0;
     return Container(
-      width: 46,
+      width: w,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFFE6E6E6)),
+        boxShadow: big ? [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 4, offset: const Offset(0, 2))] : null,
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(children: [
-        Container(height: 9, color: AppColors.red),
+        Container(
+          height: big ? 12 : 9,
+          color: AppColors.red,
+          child: big
+              ? Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+                  for (var i = 0; i < 3; i++) Container(width: 4, height: 6, color: Colors.white.withValues(alpha: 0.85)),
+                ])
+              : null,
+        ),
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Text(fmtShort(date), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+          padding: EdgeInsets.symmetric(vertical: big ? 7 : 4),
+          child: Text(fmtShort(date),
+              style: TextStyle(fontSize: big ? 15 : 12, fontWeight: FontWeight.w600, color: const Color(0xFF6B7477))),
         ),
       ]),
     );

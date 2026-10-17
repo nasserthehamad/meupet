@@ -12,7 +12,7 @@ class AgendaScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<Appointment>>(
+    return Scaffold(body: StreamBuilder<List<Appointment>>(
       stream: Db.tutorAppointments(Session.uid),
       builder: (context, snap) {
         final all = snap.data ?? [];
@@ -22,7 +22,7 @@ class AgendaScreen extends StatelessWidget {
         return ListView(
           padding: EdgeInsets.zero,
           children: [
-            PetHeader(title: 'Agendamentos', photo: Session.current.value?.photo),
+            PetHeader(showBack: true, title: 'Agendamentos', photo: Session.current.value?.photo),
             SnakeBand(
               index: 1,
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -48,7 +48,7 @@ class AgendaScreen extends StatelessWidget {
           ],
         );
       },
-    );
+    ));
   }
 }
 

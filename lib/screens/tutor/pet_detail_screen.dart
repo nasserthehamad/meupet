@@ -7,13 +7,49 @@ import '../../core/models.dart';
 import '../../core/theme.dart';
 import '../../widgets/common.dart';
 import 'pet_form_screen.dart';
+import 'providers_screen.dart';
 
-/// Área do pet: Carteirinha, Histórico Clínico e Vacinação.
-/// Usada pelo tutor (dono) e pelo prestador (via agendamento).
+/// Atalho de compatibilidade: 0 = carteirinha, 1 = histórico, 2 = vacinas.
 class PetDetailScreen extends StatelessWidget {
   final String petId;
   final int initialTab;
   const PetDetailScreen({super.key, required this.petId, this.initialTab = 0});
+
+  @override
+  Widget build(BuildContext context) {
+    switch (initialTab) {
+      case 1:
+        return HistoricoScreen(petId: petId);
+      case 2:
+        return VacinasScreen(petId: petId);
+      default:
+        return CarteirinhaScreen(petId: petId);
+    }
+  }
+}
+
+/// Transição de esmaecer (a carteirinha "aparece" por cima, como no vídeo).
+Route<void> fadeRoute(Widget page) => PageRouteBuilder<void>(
+      pageBuilder: (_, __, ___) => page,
+      transitionDuration: const Duration(milliseconds: 380),
+      reverseTransitionDuration: const Duration(milliseconds: 300),
+      transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child),
+    );
+
+/// Esqueleto comum das telas do pet: cabeçalho com foto e nome + conteúdo.
+class _PetScaffold extends StatelessWidget {
+  final String petId;
+  final String title;
+  final bool whiteHeader;
+  final List<Widget> Function(BuildContext context, Pet pet, bool isOwner) actions;
+  final Widget Function(Pet pet, bool isOwner) body;
+  const _PetScaffold({
+    required this.petId,
+    required this.title,
+    required this.actions,
+    required this.body,
+    this.whiteHeader = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -29,67 +65,114 @@ class PetDetailScreen extends StatelessWidget {
           );
         }
         final isOwner = pet.ownerId == Session.uid;
-        return DefaultTabController(
-          length: 3,
-          initialIndex: initialTab,
-          child: Scaffold(
-            body: NestedScrollView(
-              headerSliverBuilder: (context, _) => [
-                SliverToBoxAdapter(
-                  child: Builder(builder: (context) {
-                    final tc = DefaultTabController.of(context);
-                    return AnimatedBuilder(
-                      animation: tc,
-                      builder: (context, _) => PetHeader(
-                        showBack: true,
-                        title: const ['Carteirinha', 'Histórico Clínico', 'Vacinação'][tc.index],
-                        subtitle: '${pet.species}${pet.breed.isNotEmpty ? ' · ${pet.breed}' : ''} · ${ageLabel(pet.birthDate)}',
-                        photo: pet.photo,
-                        avatarLabel: pet.name,
-                        fallbackIcon: Icons.pets_rounded,
-                        actions: [
-                          if (isOwner)
-                            IconButton(
-                              tooltip: 'Editar pet',
-                              style: IconButton.styleFrom(backgroundColor: AppColors.red.withValues(alpha: 0.85)),
-                              icon: const Icon(Icons.edit_rounded, color: Colors.white, size: 20),
-                              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PetFormScreen(pet: pet))),
-                            ),
-                        ],
-                      ),
-                    );
-                  }),
-                ),
-                const SliverToBoxAdapter(
-                  child: SnakeBand(
-                    index: 1,
-                    roundBottom: false,
-                    padding: EdgeInsets.only(top: 4, right: 30),
-                    child: TabBar(
-                      labelColor: AppColors.teal,
-                      unselectedLabelColor: AppColors.muted,
-                      indicatorColor: AppColors.orange,
-                      dividerColor: Colors.transparent,
-                      tabs: [
-                        Tab(icon: Icon(Icons.badge_rounded), text: 'Carteirinha'),
-                        Tab(icon: Icon(Icons.assignment_rounded), text: 'Histórico'),
-                        Tab(icon: Icon(Icons.vaccines_rounded), text: 'Vacinas'),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-              body: TabBarView(children: [
-                CarteirinhaTab(pet: pet),
-                HistoricoTab(pet: pet),
-                VacinasTab(pet: pet),
-              ]),
-            ),
+        return Scaffold(
+          body: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              PetHeader(
+                showBack: true,
+                white: whiteHeader,
+                title: title,
+                subtitle: '${pet.species}${pet.breed.isNotEmpty ? ' · ${pet.breed}' : ''} · ${ageLabel(pet.birthDate)}',
+                photo: pet.photo,
+                avatarLabel: pet.name,
+                fallbackIcon: Icons.pets_rounded,
+                actions: actions(context, pet, isOwner),
+              ),
+              body(pet, isOwner),
+            ],
           ),
         );
       },
     );
   }
+}
+
+class _HeaderIcon extends StatelessWidget {
+  final String? asset;
+  final IconData? icon;
+  final Color color;
+  final String tooltip;
+  final VoidCallback? onTap;
+  const _HeaderIcon({this.asset, this.icon, required this.color, required this.tooltip, this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 4),
+      child: Tooltip(
+        message: tooltip,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+            padding: const EdgeInsets.all(7),
+            child: asset != null ? Image.asset(asset!) : Icon(icon, color: Colors.white, size: 22),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+List<Widget> _editAction(BuildContext context, Pet pet, bool isOwner) => [
+      if (isOwner)
+        _HeaderIcon(
+          icon: Icons.edit_rounded,
+          color: AppColors.orange,
+          tooltip: 'Editar pet',
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PetFormScreen(pet: pet))),
+        ),
+    ];
+
+class HistoricoScreen extends StatelessWidget {
+  final String petId;
+  const HistoricoScreen({super.key, required this.petId});
+  @override
+  Widget build(BuildContext context) => _PetScaffold(
+        petId: petId,
+        title: 'Histórico Clínico',
+        actions: (c, pet, own) => [
+          ..._editAction(c, pet, own),
+          const _HeaderIcon(asset: 'assets/ui/clipboard.png', color: Colors.transparent, tooltip: 'Histórico clínico'),
+        ],
+        body: (pet, own) => HistoricoTab(pet: pet),
+      );
+}
+
+class VacinasScreen extends StatelessWidget {
+  final String petId;
+  const VacinasScreen({super.key, required this.petId});
+  @override
+  Widget build(BuildContext context) => _PetScaffold(
+        petId: petId,
+        title: 'Vacinação',
+        actions: (c, pet, own) => [
+          ..._editAction(c, pet, own),
+          _HeaderIcon(
+            asset: 'assets/ui/clipboard.png',
+            color: Colors.transparent,
+            tooltip: 'Ver histórico clínico',
+            onTap: () => Navigator.pushReplacement(c, MaterialPageRoute(builder: (_) => HistoricoScreen(petId: pet.id))),
+          ),
+        ],
+        body: (pet, own) => VacinasTab(pet: pet),
+      );
+}
+
+class CarteirinhaScreen extends StatelessWidget {
+  final String petId;
+  const CarteirinhaScreen({super.key, required this.petId});
+  @override
+  Widget build(BuildContext context) => _PetScaffold(
+        petId: petId,
+        title: 'Carteirinha',
+        whiteHeader: true,
+        actions: (c, pet, own) => _editAction(c, pet, own),
+        body: (pet, own) => CarteirinhaTab(pet: pet),
+      );
 }
 
 // ======================= CARTEIRINHA =======================
@@ -102,15 +185,14 @@ class CarteirinhaTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: EdgeInsets.zero,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SnakeBand(
-          index: 1,
-          roundTop: false,
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 30),
+          index: 2,
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 26),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Text('Carteirinha de identificação PET', style: sectionStyle()),
+        Center(child: Text('Carteirinha de identificação PET', style: sectionStyle().copyWith(fontSize: 18))),
         const SizedBox(height: 10),
         // Frente
         Container(
@@ -121,14 +203,16 @@ class CarteirinhaTab extends StatelessWidget {
           ),
           padding: const EdgeInsets.all(14),
           child: Column(children: [
+            Image.asset('assets/ui/barcode.png', height: 34, width: double.infinity, fit: BoxFit.fill),
+            const SizedBox(height: 8),
             Row(children: [
-              const Icon(Icons.house_rounded, color: AppColors.teal),
+              Image.asset('assets/images/logo.png', height: 30),
               const SizedBox(width: 6),
-              const LogoText(size: 16),
+              const LogoText(size: 18),
               const Spacer(),
               Text(pet.code.isEmpty ? '' : pet.code, style: const TextStyle(fontSize: 11, color: AppColors.muted)),
             ]),
-            const Divider(),
+            const SizedBox(height: 6),
             Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Column(children: [
                 PhotoAvatar(photo: pet.photo, size: 86),
@@ -208,6 +292,11 @@ class CarteirinhaTab extends StatelessWidget {
         ]),
           ]),
         ),
+        SnakeBand(
+          index: 3,
+          padding: const EdgeInsets.fromLTRB(40, 14, 40, 30),
+          child: Center(child: Text(pet.name, style: scriptStyle(46, AppColors.teal))),
+        ),
       ],
     );
   }
@@ -241,15 +330,29 @@ class HistoricoTab extends StatelessWidget {
         final docs = (snap.data?.docs ?? []).toList()
           ..sort((a, b) => (tsToDate(b.data()['date']) ?? DateTime(1900)).compareTo(tsToDate(a.data()['date']) ?? DateTime(1900)));
         List<QueryDocumentSnapshot<Map<String, dynamic>>> byType(String t) => docs.where((d) => d.data()['type'] == t).toList();
-        return ListView(
-          padding: EdgeInsets.zero,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             SnakeBand(
               index: 1,
-              roundTop: false,
-              padding: const EdgeInsets.fromLTRB(22, 14, 22, 26),
+              padding: const EdgeInsets.fromLTRB(22, 14, 18, 26),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Prontuário Pet', style: sectionStyle()),
+                Row(children: [
+                  Expanded(child: Text('Prontuário Pet', style: sectionStyle().copyWith(fontSize: 19))),
+                  InkWell(
+                    key: const Key('ver_vacinas'),
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => VacinasScreen(petId: pet.id))),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Column(children: [
+                        CircleAvatar(radius: 19, backgroundColor: Color(0xFFF26B5B), child: Icon(Icons.vaccines_rounded, color: Colors.white, size: 22)),
+                        SizedBox(height: 2),
+                        Text('Ver Vacinas', style: TextStyle(fontSize: 11, color: AppColors.muted)),
+                      ]),
+                    ),
+                  ),
+                ]),
                 const SizedBox(height: 6),
                 Text('Pet: ${pet.name}${pet.breed.isNotEmpty ? ' (${pet.breed})' : ''}'),
                 Text('Idade: ${ageLabel(pet.birthDate)}'),
@@ -261,12 +364,35 @@ class HistoricoTab extends StatelessWidget {
                 if (pet.food.isNotEmpty) ...[const Divider(height: 18), Text('Alimentação: ${pet.food}')],
               ]),
             ),
-            _RecordSection(band: 2, pet: pet, type: 'consulta', title: 'Consultas', icon: Icons.medical_services_rounded, docs: byType('consulta')),
-            _RecordSection(band: 3, pet: pet, type: 'receita', title: 'Receitas Médicas', icon: Icons.receipt_long_rounded, docs: byType('receita')),
-            _RecordSection(band: 4, pet: pet, type: 'exame', title: 'Exames Pet', icon: Icons.biotech_rounded, docs: byType('exame')),
+            _RecordSection(band: 2, pet: pet, type: 'receita', title: 'Receitas Médicas', icon: Icons.receipt_long_rounded, docs: byType('receita')),
+            _RecordSection(band: 3, pet: pet, type: 'exame', title: 'Exames Pet', icon: Icons.biotech_rounded, docs: byType('exame')),
+            _RecordSection(band: 4, pet: pet, type: 'consulta', title: 'Consultas', icon: Icons.medical_services_rounded, docs: byType('consulta')),
           ],
         );
       },
+    );
+  }
+}
+
+class _MiniAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  const _MiniAction({required this.icon, required this.label, required this.onTap, this.color = AppColors.orange});
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          CircleAvatar(radius: 15, backgroundColor: color, child: Icon(icon, color: Colors.white, size: 18)),
+          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.muted)),
+        ]),
+      ),
     );
   }
 }
@@ -322,7 +448,21 @@ class _RecordSection extends StatelessWidget {
                     ),
                   ]),
                 ),
-                const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+                _MiniAction(
+                  icon: Icons.download_rounded,
+                  label: 'Abrir',
+                  onTap: () => _showRecord(context, d),
+                ),
+                if (type == 'receita')
+                  _MiniAction(
+                    icon: Icons.shopping_cart_rounded,
+                    label: 'Comprar',
+                    color: AppColors.teal,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ProvidersListScreen(title: 'Farmácia', categories: ['Farmácia'])),
+                    ),
+                  ),
               ]),
             ),
           ),
@@ -454,12 +594,11 @@ class VacinasTab extends StatelessWidget {
                 if (tsToDate(p.data()['nextDate']) != null && tsToDate(p.data()['nextDate'])!.isAfter(now)) (p.data()['product'] as String? ?? '', tsToDate(p.data()['nextDate'])!),
             ]..sort((a, b) => a.$2.compareTo(b.$2));
 
-            return ListView(
-              padding: EdgeInsets.zero,
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SnakeBand(
                   index: 1,
-                  roundTop: false,
                   padding: const EdgeInsets.fromLTRB(22, 10, 18, 22),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Row(children: [

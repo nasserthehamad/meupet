@@ -51,10 +51,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     _u = Session.current.value ?? _u;
     final prov = _u.isProvider;
-    return ListView(
+    return Scaffold(body: ListView(
       padding: EdgeInsets.zero,
       children: [
-        PetHeader(title: 'Meu perfil', subtitle: prov ? 'Prestador de serviço' : 'Tutor', photo: _photo),
+        PetHeader(showBack: true, title: 'Meu perfil', subtitle: prov ? 'Prestador de serviço' : 'Tutor', photo: _photo),
         SnakeBand(
           index: 1, padding: const EdgeInsets.only(top: 14, bottom: 30),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -113,13 +113,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               },
             ),
             const SizedBox(height: 20),
-            const Center(child: Text('Meu Pet+ · v1.0', style: TextStyle(color: AppColors.muted, fontSize: 12))),
+            const Center(
+              child: Text('Meu Pet+ · versão ${String.fromEnvironment('APP_VERSION', defaultValue: 'dev')}',
+                  style: TextStyle(color: AppColors.muted, fontSize: 12)),
+            ),
             const SizedBox(height: 20),
           ]),
         ),
           ]),
         ),
       ],
-    );
+    ));
   }
 }

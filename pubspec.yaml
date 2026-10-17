@@ -17,6 +17,7 @@ dependencies:
   image_picker: any
   qr_flutter: any
   video_player: any
+  url_launcher: any
 
 dev_dependencies:
   flutter_test:
@@ -29,6 +30,8 @@ flutter:
   assets:
     - assets/images/
     - assets/video/
+    - assets/icons/
+    - assets/ui/
   fonts:
     - family: Poppins
       fonts:

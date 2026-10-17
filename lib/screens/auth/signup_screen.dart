@@ -124,7 +124,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     child: Text(g.title, style: const TextStyle(color: AppColors.orange, fontWeight: FontWeight.w700)),
                   ),
                   Wrap(spacing: 8, runSpacing: 4, children: [
-                    for (final c in g.items)
+                    for (final c in g.providerCategories)
                       FilterChip(
                         avatar: Icon(c.icon, size: 16, color: _cats.contains(c.name) ? Colors.white : AppColors.teal),
                         label: Text(c.name),

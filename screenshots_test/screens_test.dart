@@ -10,15 +10,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:meupet/core/catalog.dart';
 import 'package:meupet/core/db.dart';
 import 'package:meupet/core/models.dart';
 import 'package:meupet/core/theme.dart';
 import 'package:meupet/screens/auth/login_screen.dart';
 import 'package:meupet/screens/auth/signup_screen.dart';
+import 'package:meupet/screens/common/chat_list_screen.dart';
 import 'package:meupet/screens/common/chat_screen.dart';
+import 'package:meupet/screens/common/emergency_screen.dart';
+import 'package:meupet/screens/common/profile_screen.dart';
 import 'package:meupet/screens/provider/provider_shell.dart';
 import 'package:meupet/screens/tutor/adoption_screen.dart';
+import 'package:meupet/screens/tutor/agenda_screen.dart';
+import 'package:meupet/screens/tutor/my_pets_screen.dart';
 import 'package:meupet/screens/tutor/pet_detail_screen.dart';
 import 'package:meupet/screens/tutor/pet_form_screen.dart';
 import 'package:meupet/screens/tutor/providers_screen.dart';
@@ -56,7 +60,7 @@ Future<FakeFirebaseFirestore> seed() async {
       'name': 'Dra. Adeline Palmerston', 'email': 'contato@amicao.com', 'role': 'prestador', 'photo': photo('amicao'),
       'businessName': 'Vet Amicão', 'address': 'Av. do Estado, 1200', 'city': 'São Paulo', 'phone': '(11) 3333-0000',
       'description': 'Clínica veterinária 24h com atendimento humanizado, vacinas, exames e TaxiPet.',
-      'categories': ['Veterinário', 'Vacinação', 'Exames', 'TaxiPet'],
+      'categories': ['Veterinário', 'Vacinação', 'Exames', 'Emergência 24h', 'TaxiPet'],
     },
     'shop1': {
       'name': 'Carla Souza', 'email': 'mania@bicho.com', 'role': 'prestador', 'photo': photo('maniadebicho'),
@@ -131,12 +135,15 @@ Future<FakeFirebaseFirestore> seed() async {
     ['Bella', 'Gato', '2 meses', 'F', 'bella'], ['Bilu', 'Cachorro', '4 anos', 'M', 'bilu'], ['Jorge', 'Cachorro', '3 anos', 'M', 'jorge'],
     ['Donatello', 'Réptil', '7 anos', 'M', 'donatello'], ['Rantaro', 'Roedor', '2 anos', 'M', 'rantaro'], ['Boris', 'Aves', '3 anos', 'M', 'boris'],
   ];
+  final adoptIds = <String>[];
   for (final a in adopt) {
-    await db.collection('adoptions').add({
+    final ref = await db.collection('adoptions').add({
       'name': a[0], 'species': a[1], 'age': a[2], 'sex': a[3], 'photo': photo(a[4]), 'description': 'Dócil e brincalhão.',
       'city': 'São Paulo', 'postedBy': 'shop1', 'postedByName': 'Mania de Bicho', 'status': 'disponivel',
     });
+    adoptIds.add(ref.id);
   }
+  await db.collection('users').doc('tutor1').update({'favorites': [adoptIds[0], adoptIds[7]]});
 
   final chatId = Db.chatIdFor('tutor1', 'vet1');
   await db.collection('chats').doc(chatId).set({
@@ -227,8 +234,8 @@ Future<void> shot(WidgetTester t, String name, Widget Function() home, {String? 
   debugDisableShadows = true;
 }
 
-Future<void> Function(WidgetTester) tapNav(String label) => (t) async {
-      await t.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text(label)));
+Future<void> Function(WidgetTester) tapKey(String key) => (t) async {
+      await t.tap(find.byKey(Key(key)).first);
     };
 
 void main() {
@@ -238,23 +245,27 @@ void main() {
   testWidgets('01 login', (t) => shot(t, '01_login', () => const LoginScreen()));
   testWidgets('02 cadastro', (t) => shot(t, '02_cadastro_prestador', () => const SignupScreen(),
       act: (t) async => t.tap(find.text('Prestador'))));
-  testWidgets('03 inicio', (t) => shot(t, '03_tutor_inicio', () => const TutorShell(), as: 'tutor'));
-  testWidgets('04 meus pets', (t) => shot(t, '04_tutor_meus_pets', () => const TutorShell(), as: 'tutor', act: tapNav('Meus Pets')));
-  testWidgets('05 carteirinha', (t) => shot(t, '05_pet_carteirinha', () => const PetDetailScreen(petId: 'zuka'), as: 'tutor'));
-  testWidgets('06 historico', (t) => shot(t, '06_pet_historico_clinico', () => const PetDetailScreen(petId: 'athos', initialTab: 1), as: 'tutor'));
-  testWidgets('07 vacinas', (t) => shot(t, '07_pet_vacinas', () => const PetDetailScreen(petId: 'athos', initialTab: 2), as: 'tutor'));
-  testWidgets('08 agenda', (t) => shot(t, '08_tutor_agenda', () => const TutorShell(), as: 'tutor', act: tapNav('Agenda')));
-  testWidgets('09 cuidado', (t) => shot(t, '09_categoria_cuidado', () => ServiceGroupScreen(group: serviceGroups[1]), as: 'tutor'));
-  testWidgets('10 prestadores', (t) => shot(t, '10_lista_prestadores', () => const ProvidersListScreen(category: 'Banho e Tosa'), as: 'tutor'));
-  testWidgets('11 prestador detalhe', (t) => shot(t, '11_prestador_detalhe', () => ProviderDetailScreen(provider: vet), as: 'tutor'));
-  testWidgets('12 agendar', (t) => shot(t, '12_agendar', () => BookingScreen(provider: vet, initialService: 'Veterinário'), as: 'tutor',
+  testWidgets('03 inicio vida', (t) => shot(t, '03_inicio_vida', () => const TutorShell(), as: 'tutor'));
+  testWidgets('04 inicio saude', (t) => shot(t, '04_inicio_saude', () => const TutorShell(), as: 'tutor', act: tapKey('grupo_saude')));
+  testWidgets('05 inicio cuidado', (t) => shot(t, '05_inicio_cuidado', () => const TutorShell(), as: 'tutor', act: tapKey('grupo_cuidado')));
+  testWidgets('06 inicio produto', (t) => shot(t, '06_inicio_produto', () => const TutorShell(), as: 'tutor', act: tapKey('grupo_produtos')));
+  testWidgets('07 menu', (t) => shot(t, '07_menu_tutor', () => const TutorShell(), as: 'tutor', act: tapKey('menu')));
+  testWidgets('08 meus pets', (t) => shot(t, '08_meus_pets', () => const MyPetsScreen(), as: 'tutor'));
+  testWidgets('09 carteirinha', (t) => shot(t, '09_carteirinha', () => const CarteirinhaScreen(petId: 'zuka'), as: 'tutor'));
+  testWidgets('10 historico', (t) => shot(t, '10_historico_clinico', () => const HistoricoScreen(petId: 'athos'), as: 'tutor'));
+  testWidgets('11 vacinas', (t) => shot(t, '11_vacinacao', () => const VacinasScreen(petId: 'athos'), as: 'tutor'));
+  testWidgets('12 adocao', (t) => shot(t, '12_adocao', () => const AdoptionScreen(), as: 'tutor'));
+  testWidgets('13 prestadores', (t) => shot(t, '13_lista_prestadores',
+      () => const ProvidersListScreen(title: 'Banho e Tosa', categories: ['Banho e Tosa']), as: 'tutor'));
+  testWidgets('14 prestador detalhe', (t) => shot(t, '14_prestador_detalhe', () => ProviderDetailScreen(provider: vet), as: 'tutor'));
+  testWidgets('15 agendar', (t) => shot(t, '15_agendar', () => BookingScreen(provider: vet, initialService: 'Veterinário'), as: 'tutor',
       act: (t) async => t.tap(find.text('Athos').first)));
-  testWidgets('13 adocao', (t) => shot(t, '13_adocao', () => const AdoptionScreen(), as: 'tutor'));
-  testWidgets('14 conversas', (t) => shot(t, '14_conversas', () => const TutorShell(), as: 'tutor', act: tapNav('Chat')));
-  testWidgets('15 chat', (t) => shot(t, '15_chat', () => ChatScreen(chatId: Db.chatIdFor('tutor1', 'vet1'), otherName: 'Vet Amicão', otherId: 'vet1'), as: 'tutor'));
-  testWidgets('16 perfil', (t) => shot(t, '16_tutor_perfil', () => const TutorShell(), as: 'tutor', act: tapNav('Perfil')));
-  testWidgets('17 novo pet', (t) => shot(t, '17_novo_pet', () => const PetFormScreen(), as: 'tutor'));
-  testWidgets('18 prestador atendimentos', (t) => shot(t, '18_prestador_atendimentos', () => const ProviderShell(), as: 'vet'));
-  testWidgets('19 prestador solicitacoes', (t) => shot(t, '19_prestador_solicitacoes', () => const ProviderShell(), as: 'vet', act: tapNav('Solicitações')));
-  testWidgets('20 prestador perfil', (t) => shot(t, '20_prestador_perfil', () => const ProviderShell(), as: 'vet', act: tapNav('Perfil')));
+  testWidgets('16 petchat', (t) => shot(t, '16_petchat', () => const ChatListScreen(), as: 'tutor'));
+  testWidgets('17 chat', (t) => shot(t, '17_chat', () => ChatScreen(chatId: Db.chatIdFor('tutor1', 'vet1'), otherName: 'Vet Amicão', otherId: 'vet1'), as: 'tutor'));
+  testWidgets('18 sos', (t) => shot(t, '18_sos', () => const EmergencyScreen(), as: 'tutor'));
+  testWidgets('19 agenda', (t) => shot(t, '19_agenda_tutor', () => const AgendaScreen(), as: 'tutor'));
+  testWidgets('20 perfil', (t) => shot(t, '20_perfil_tutor', () => const ProfileScreen(), as: 'tutor'));
+  testWidgets('21 novo pet', (t) => shot(t, '21_novo_pet', () => const PetFormScreen(), as: 'tutor'));
+  testWidgets('22 prestador inicio', (t) => shot(t, '22_prestador_inicio', () => const ProviderShell(), as: 'vet'));
+  testWidgets('23 prestador menu', (t) => shot(t, '23_prestador_menu', () => const ProviderShell(), as: 'vet', act: tapKey('menu')));
 }
