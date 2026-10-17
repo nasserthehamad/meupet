@@ -144,7 +144,7 @@ class _Hero extends StatelessWidget {
         Positioned(
           right: circle - 30,
           top: circle * 0.36,
-          child: Image.asset('assets/ui/paw_yellow.png', width: 26),
+          child: Transform.rotate(angle: -0.4, child: const Icon(Icons.pets, color: Color(0xFFF5B342), size: 26)),
         ),
         Positioned(
           left: 18,
@@ -266,7 +266,7 @@ class _VidaPage extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              for (var i = 0; i < serviceGroups.length; i++)
+              for (final i in const [0, 2, 1]) // ordem do protótipo: +Saúde, +Produtos, +Cuidado
                 Expanded(
                   child: GestureDetector(
                     key: Key('grupo_${serviceGroups[i].key}'),

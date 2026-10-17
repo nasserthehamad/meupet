@@ -73,7 +73,6 @@ class _PetScaffold extends StatelessWidget {
                 showBack: true,
                 white: whiteHeader,
                 title: title,
-                subtitle: '${pet.species}${pet.breed.isNotEmpty ? ' · ${pet.breed}' : ''} · ${ageLabel(pet.birthDate)}',
                 photo: pet.photo,
                 avatarLabel: pet.name,
                 fallbackIcon: Icons.pets_rounded,
@@ -243,44 +242,72 @@ class CarteirinhaTab extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: AppColors.teal, width: 2),
           ),
-          padding: const EdgeInsets.all(14),
-          child: Row(children: [
+          padding: const EdgeInsets.fromLTRB(14, 10, 8, 12),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text.rich(TextSpan(children: [
-                  TextSpan(text: 'Meu', style: logoStyle(30, AppColors.teal)),
-                  TextSpan(text: 'PET', style: logoStyle(30, AppColors.orange)),
-                ])),
-                Text('+VIDA', style: scriptStyle(18, AppColors.teal)),
-                const SizedBox(height: 8),
-                Text('${pet.species}${pet.breed.isNotEmpty ? ' · ${pet.breed}' : ''}', style: const TextStyle(fontSize: 12)),
-                if (pet.allergies.isNotEmpty)
-                  Row(children: [
-                    const Icon(Icons.warning_amber_rounded, size: 14, color: AppColors.red),
-                    const SizedBox(width: 3),
-                    Expanded(child: Text('Alergias: ${pet.allergies}', style: const TextStyle(fontSize: 11, color: AppColors.red))),
+                Row(children: [
+                  Text.rich(TextSpan(children: [
+                    TextSpan(text: 'Meu', style: logoStyle(34, AppColors.teal)),
+                    TextSpan(text: 'PET', style: logoStyle(34, AppColors.orange)),
+                  ])),
+                  const SizedBox(width: 6),
+                  Image.asset('assets/images/logo.png', height: 28),
+                ]),
+                Transform.translate(
+                  offset: const Offset(16, -6),
+                  child: Text('+VIDA', style: scriptStyle(18, const Color(0xFFB8C2C4))),
+                ),
+                Row(children: [
+                  Stack(alignment: Alignment.bottomCenter, children: [
+                    PhotoAvatar(photo: pet.photo, size: 78, border: Colors.white),
+                    Text(pet.name, style: scriptStyle(15, AppColors.teal).copyWith(shadows: const [Shadow(color: Colors.white, blurRadius: 5)])),
                   ]),
-                const SizedBox(height: 6),
-                const Text('Cuidado que vale uma VIDA!', style: TextStyle(fontSize: 10, color: AppColors.orange, fontStyle: FontStyle.italic)),
-              ]),
-            ),
-            GestureDetector(
-              onTap: () => showDialog(
-                context: context,
-                builder: (_) => Dialog(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Text(pet.name, style: scriptStyle(30, AppColors.teal)),
-                      const SizedBox(height: 10),
-                      QrImageView(data: _qrData, size: 240),
-                      const SizedBox(height: 8),
-                      const Text('Mostre ao veterinário ou petshop', style: TextStyle(color: AppColors.muted)),
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: () => showDialog(
+                      context: context,
+                      builder: (_) => Dialog(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(mainAxisSize: MainAxisSize.min, children: [
+                            Text(pet.name, style: scriptStyle(30, AppColors.teal)),
+                            const SizedBox(height: 10),
+                            QrImageView(data: _qrData, size: 240, eyeStyle: const QrEyeStyle(color: AppColors.teal, eyeShape: QrEyeShape.square), dataModuleStyle: const QrDataModuleStyle(color: AppColors.teal, dataModuleShape: QrDataModuleShape.square)),
+                            const SizedBox(height: 8),
+                            const Text('Mostre ao veterinário ou petshop', style: TextStyle(color: AppColors.muted)),
+                          ]),
+                        ),
+                      ),
+                    ),
+                    child: QrImageView(
+                      data: _qrData,
+                      size: 96,
+                      padding: EdgeInsets.zero,
+                      eyeStyle: const QrEyeStyle(color: AppColors.teal, eyeShape: QrEyeShape.square),
+                      dataModuleStyle: const QrDataModuleStyle(color: AppColors.teal, dataModuleShape: QrDataModuleShape.square),
+                    ),
+                  ),
+                ]),
+                if (pet.allergies.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Row(children: [
+                      const Icon(Icons.warning_amber_rounded, size: 14, color: AppColors.red),
+                      const SizedBox(width: 3),
+                      Expanded(child: Text('Alergias: ${pet.allergies}', style: const TextStyle(fontSize: 11, color: AppColors.red))),
                     ]),
                   ),
-                ),
-              ),
-              child: QrImageView(data: _qrData, size: 110),
+              ]),
+            ),
+            Container(width: 1.5, height: 150, color: const Color(0xFFE2E5E6)),
+            const SizedBox(width: 4),
+            RotatedBox(
+              quarterTurns: 3,
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Text('Cuidado que vale uma VIDA!', style: scriptStyle(15, AppColors.purple)),
+                const Text('WWW.MEUPET+.COM', style: TextStyle(fontSize: 8, letterSpacing: 1.5, color: AppColors.muted)),
+              ]),
             ),
           ]),
         ),

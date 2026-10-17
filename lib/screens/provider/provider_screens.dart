@@ -95,7 +95,7 @@ class _ProviderHomeState extends State<ProviderHome> {
                       },
                       child: InputDecorator(
                         isEmpty: true,
-                        decoration: _pill(_date == null ? 'Digite a data' : fmtDate(_date), _date == null ? Icons.event_rounded : Icons.close_rounded),
+                        decoration: _pill(_date == null ? 'Data' : fmtShort(_date), _date == null ? Icons.event_rounded : Icons.close_rounded),
                         child: const SizedBox.shrink(),
                       ),
                     ),
@@ -313,7 +313,7 @@ class _ImgAction extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   const _ImgAction({required this.asset, required this.label, required this.onTap});
-  static const double size = 34;
+  static const double size = 30;
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -324,7 +324,7 @@ class _ImgAction extends StatelessWidget {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Image.asset(asset, width: size, height: size),
           const SizedBox(height: 2),
-          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.muted)),
+          Text(label, style: const TextStyle(fontSize: 9, color: AppColors.muted)),
         ]),
       ),
     );
@@ -337,17 +337,20 @@ class _ApptText extends StatelessWidget {
   const _ApptText({required this.a, this.showObs = true});
   @override
   Widget build(BuildContext context) {
-    const st = TextStyle(fontSize: 13, color: Color(0xFF6B7477), height: 1.3);
+    const st = TextStyle(fontSize: 12, color: Color(0xFF6B7477), height: 1.25);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(fmtTime(a.dateTime), style: st.copyWith(fontWeight: FontWeight.w600, color: AppColors.text)),
-      Text('Nome: ${a.petName}', style: st),
-      Text('Animal: ${a.species}', style: st),
+      Text('Nome: ${a.petName}', style: st, maxLines: 1, overflow: TextOverflow.ellipsis),
+      Text('Animal: ${a.species}', style: st, maxLines: 1, overflow: TextOverflow.ellipsis),
       if (showObs) Text('Obs.: ${a.notes.isEmpty ? a.service : '${a.service} · ${a.notes}'}', style: st, maxLines: 2, overflow: TextOverflow.ellipsis),
       if (a.taxiPet)
         Row(children: [
           const Icon(Icons.local_taxi_rounded, size: 14, color: AppColors.orange),
           const SizedBox(width: 3),
-          Expanded(child: Text(a.address.isEmpty ? 'TaxiPet' : a.address, style: st.copyWith(color: AppColors.orange, fontSize: 12))),
+          Expanded(
+            child: Text(a.address.isEmpty ? 'TaxiPet' : a.address,
+                maxLines: 1, overflow: TextOverflow.ellipsis, style: st.copyWith(color: AppColors.orange, fontSize: 11)),
+          ),
         ]),
     ]);
   }
@@ -374,9 +377,9 @@ class _AtendimentoTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(children: [
           DateBadge(a.dateTime, big: true),
+          const SizedBox(width: 6),
+          PhotoAvatar(photo: a.petPhoto, size: 46, border: Colors.white),
           const SizedBox(width: 8),
-          PhotoAvatar(photo: a.petPhoto, size: 54, border: Colors.white),
-          const SizedBox(width: 10),
           Expanded(child: _ApptText(a: a)),
           _ImgAction(asset: 'assets/ui/clipboard.png', label: 'Prontuário', onTap: () => _prontuario(context, a)),
           _ImgAction(asset: 'assets/ui/reagendar.png', label: 'Reagendar', onTap: () => _reschedule(context, a)),
@@ -395,9 +398,9 @@ class _PedidoTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(children: [
         DateBadge(a.dateTime, big: true),
+        const SizedBox(width: 6),
+        PhotoAvatar(photo: a.petPhoto, size: 44, border: Colors.white),
         const SizedBox(width: 8),
-        PhotoAvatar(photo: a.petPhoto, size: 50, border: Colors.white),
-        const SizedBox(width: 10),
         Expanded(child: _ApptText(a: a, showObs: false)),
         InkWell(
           borderRadius: BorderRadius.circular(10),
@@ -408,18 +411,20 @@ class _PedidoTile extends StatelessWidget {
           child: const Padding(
             padding: EdgeInsets.symmetric(horizontal: 3, vertical: 4),
             child: Column(children: [
-              CircleAvatar(radius: 17, backgroundColor: Color(0xFF5E7A1C), child: Icon(Icons.check_rounded, color: Colors.white)),
+              CircleAvatar(radius: 15, backgroundColor: Color(0xFF5E7A1C), child: Icon(Icons.check_rounded, color: Colors.white, size: 20)),
               SizedBox(height: 2),
-              Text('Confirmar', style: TextStyle(fontSize: 10, color: AppColors.muted)),
+              Text('Confirmar', style: TextStyle(fontSize: 9, color: AppColors.muted)),
             ]),
           ),
         ),
         _ImgAction(asset: 'assets/ui/reagendar.png', label: 'Reagendar', onTap: () => _reschedule(context, a)),
-        IconButton(
-          tooltip: 'Detalhes',
-          visualDensity: VisualDensity.compact,
-          onPressed: () => showAppointmentSheet(context, a),
-          icon: const Icon(Icons.chevron_right_rounded, color: AppColors.muted),
+        InkWell(
+          onTap: () => showAppointmentSheet(context, a),
+          borderRadius: BorderRadius.circular(16),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: Icon(Icons.chevron_right_rounded, color: AppColors.muted, size: 22),
+          ),
         ),
       ]),
     );
