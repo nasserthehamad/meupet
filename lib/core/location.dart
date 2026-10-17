@@ -21,7 +21,7 @@ class LocationService {
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
         lastError = 'A localização do aparelho está desligada.';
-        return _last();
+        return await _last();
       }
       var perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();

@@ -167,8 +167,7 @@ class _ProviderHomeState extends State<ProviderHome> {
                 if (!snap.hasData)
                   const Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator()))
                 else if (active.isEmpty)
-                  const EmptyState(icon: Icons.local_taxi_rounded, text: 'Nenhuma corrida confirmada.
-Novos pedidos aparecem em "Aceitar Agendamentos".')
+                  const EmptyState(icon: Icons.local_taxi_rounded, text: 'Nenhuma corrida confirmada.\nNovos pedidos aparecem em "Aceitar Agendamentos".')
                 else
                   for (final r in active) RideTile(r: r, driverView: true),
               ]),
@@ -227,8 +226,7 @@ Novos pedidos aparecem em "Aceitar Agendamentos".')
                 if (!snap.hasData)
                   const Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator()))
                 else if (ativos.isEmpty)
-                  const EmptyState(icon: Icons.shopping_bag_rounded, text: 'Nenhum pedido para separar.
-Novos pedidos aparecem em "Pedidos Recebidos".')
+                  const EmptyState(icon: Icons.shopping_bag_rounded, text: 'Nenhum pedido para separar.\nNovos pedidos aparecem em "Pedidos Recebidos".')
                 else
                   for (final o in ativos)
                     OrderTile(o: o, storeView: true, actions: [
