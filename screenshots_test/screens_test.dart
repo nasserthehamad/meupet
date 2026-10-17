@@ -274,6 +274,7 @@ Future<void> shot(WidgetTester t, String name, Widget Function() home, {String? 
   t.view.physicalSize = const Size(1080, 2340);
   t.view.devicePixelRatio = 2.75;
   t.view.padding = const FakeViewPadding(top: 66);
+  clearUserCache();
   Db.fs = await t.runAsync(seed) as FirebaseFirestore;
   Session.current.value = as == 'vet' ? vet : (as == 'tutor' ? tutor : null);
   await t.pumpWidget(app(home()));
@@ -290,7 +291,13 @@ Future<void> shot(WidgetTester t, String name, Widget Function() home, {String? 
 }
 
 Future<void> Function(WidgetTester) tapKey(String key) => (t) async {
-      final f = find.byKey(Key(key)).first;
+      final all = find.byKey(Key(key));
+      if (all.evaluate().isEmpty) {
+        // itens fora da tela ainda não foram construídos: rola até aparecer
+        await t.dragUntilVisible(all, find.byType(Scrollable).first, const Offset(0, -250));
+        await t.pump(const Duration(milliseconds: 300));
+      }
+      final f = all.first;
       await t.ensureVisible(f);
       await t.pump(const Duration(milliseconds: 300));
       await t.tap(f);

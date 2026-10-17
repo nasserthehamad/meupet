@@ -24,6 +24,7 @@ const commonExams = [
 
 final Map<String, Future<AppUser?>> _userCache = {};
 Future<AppUser?> cachedUser(String id) => _userCache.putIfAbsent(id, () => Db.getUser(id));
+void clearUserCache() => _userCache.clear();
 
 /// Prestador da área da saúde (pode emitir receita e pedido de exame).
 bool canPrescribe(AppUser? u) {
