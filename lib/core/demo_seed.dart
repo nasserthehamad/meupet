@@ -10,6 +10,11 @@ const kSeedEmails = {'nasser.hamad@unesp.br'};
 
 bool canSeedDemo(String email) => kSeedEmails.contains(email.trim().toLowerCase());
 
+/// Contas de teste (tutor e prestador) que veem as ferramentas de teste no menu.
+const kTestEmails = {'nasser.hamad@unesp.br', 'nhamadxd@gmail.com'};
+
+bool isTestAccount(String email) => kTestEmails.contains(email.trim().toLowerCase());
+
 /// Pede ao servidor (Worker) para criar prestadores de Bauru e preencher a
 /// conta de testes com a gata Zuka. Devolve um resumo ou lança o erro.
 Future<String> seedDemoData() async {

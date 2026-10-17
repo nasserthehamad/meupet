@@ -28,28 +28,68 @@ class Push {
   static final List<StreamSubscription> _subs = [];
   static bool _listening = false;
 
+  /// O usuário bloqueou as notificações do app no celular.
+  static bool denied = false;
+
+  /// Último problema ao registrar o aparelho (para o teste de notificação).
+  static String? lastError;
+
   static Future<void> register(String uid) async {
     if (!enabled || _uid == uid) return;
     _uid = uid;
+    await _registerDevice();
+  }
+
+  static Future<void> _registerDevice() async {
+    final uid = _uid;
+    if (uid == null) return;
     try {
       final fm = FirebaseMessaging.instance;
-      await fm.requestPermission();
+      final st = await fm.requestPermission();
+      denied = st.authorizationStatus == AuthorizationStatus.denied;
       final t = await fm.getToken();
-      if (t != null) await _save(uid, t);
-      _subs.add(fm.onTokenRefresh.listen((t) => _save(uid, t)));
+      if (t == null) {
+        lastError = 'O celular não deu um código de notificação (Google Play Services).';
+      } else {
+        lastError = null;
+        await _save(uid, t);
+      }
       if (!_listening) {
         _listening = true;
+        // O token novo vai sempre para a conta logada agora.
+        _subs.add(fm.onTokenRefresh.listen((t) {
+          if (_uid != null) _save(_uid!, t);
+        }));
         _subs.add(FirebaseMessaging.onMessage.listen(_foreground));
         _subs.add(FirebaseMessaging.onMessageOpenedApp.listen((m) => onOpen?.call(m.data)));
         final initial = await fm.getInitialMessage();
         if (initial != null) onOpen?.call(initial.data);
       }
-    } catch (_) {}
+    } catch (e) {
+      lastError = '$e';
+    }
   }
 
   static Future<void> _save(String uid, String token) async {
     _token = token;
     await Db.users.doc(uid).update({'fcmTokens': FieldValue.arrayUnion([token])});
+  }
+
+  /// Teste: registra este aparelho de novo e pede ao servidor uma notificação
+  /// para a própria conta daqui a alguns segundos. Devolve o texto para mostrar.
+  static Future<String> test() async {
+    if (!enabled) return 'Notificações desligadas neste modo.';
+    await _registerDevice();
+    if (denied) return 'As notificações do Meu Pet+ estão bloqueadas neste celular. Libere em Configurações › Apps › Meu Pet+ › Notificações.';
+    if (_token == null) return lastError ?? 'Este aparelho não conseguiu se registrar para notificações.';
+    final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
+    if (idToken == null) return 'Entre na conta primeiro.';
+    final r = await http
+        .post(Uri.parse('${AppConfig.pushUrl}/test?delay=6'), headers: {'Authorization': 'Bearer $idToken'})
+        .timeout(const Duration(seconds: 20));
+    if (r.statusCode != 200) return 'O servidor respondeu ${r.statusCode}: ${r.body}';
+    final n = (jsonDecode(r.body)['devices'] as num?)?.toInt() ?? 0;
+    return 'Em 6 segundos chega uma notificação de teste em $n aparelho(s) desta conta. Saia do app (botão de início) para ver na barra do celular.';
   }
 
   /// Ao sair da conta, este aparelho para de receber avisos dela.

@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../core/catalog.dart';
 import '../core/demo_seed.dart';
+import '../core/push.dart';
 import '../core/db.dart';
 import '../core/theme.dart';
 import '../core/theme_controller.dart';
@@ -318,6 +319,19 @@ class AppDrawer extends StatelessWidget {
               onTap: () => _switchAccount(context, exit: false),
             ),
             _Item(color: const Color(0xFF7E8587), icon: Icons.logout_rounded, label: 'Sair', onTap: () => _switchAccount(context, exit: true)),
+            if (isTestAccount(u?.email ?? ''))
+              _Item(
+                key: const Key('testar_notificacao'),
+                color: AppColors.teal,
+                icon: Icons.notifications_active_rounded,
+                label: 'Testar notificação',
+                sub: 'Chega neste celular em 6 segundos',
+                onTap: () async {
+                  final c = _close(context);
+                  final msg = await Push.test().catchError((e) => 'Não deu certo: $e');
+                  if (c.mounted) showSnack(c, msg);
+                },
+              ),
             if (canSeedDemo(u?.email ?? ''))
               _Item(
                 key: const Key('dados_teste'),

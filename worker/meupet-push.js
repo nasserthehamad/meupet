@@ -21,7 +21,7 @@ let cachedAccess = null; // { token, exp }
 let cachedJwks = null; // { keys, exp }
 
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
     const url = new URL(req.url);
     if (url.pathname === '/' && req.method === 'GET') {
@@ -40,7 +40,8 @@ export default {
       return json(out);
     }
     const isSeed = url.pathname === '/seed';
-    if ((url.pathname !== '/notify' && !isSeed) || req.method !== 'POST') return json({ error: 'not found' }, 404);
+    const isTest = url.pathname === '/test';
+    if ((url.pathname !== '/notify' && !isSeed && !isTest) || req.method !== 'POST') return json({ error: 'not found' }, 404);
 
     const projectId = env.PROJECT_ID || 'meupet-2c05b';
     let sender;
@@ -50,7 +51,23 @@ export default {
       who = await verifyIdToken(idToken, projectId);
       sender = who.sub;
     } catch (e) {
+      console.log(JSON.stringify({ ev: 'auth_fail', path: url.pathname, err: String(e.message || e) }));
       return json({ error: 'unauthorized', detail: String(e.message || e) }, 401);
+    }
+
+    // Teste: manda uma notificação para os aparelhos da própria conta, depois
+    // de alguns segundos (dá tempo de sair do app e ver na barra do celular).
+    if (isTest) {
+      const access = await getAccessToken(JSON.parse(env.SERVICE_ACCOUNT));
+      const tokens = await getTokens(projectId, sender, access);
+      const delay = Math.min(15, Math.max(0, Number(url.searchParams.get('delay') || 6))) * 1000;
+      const run = async () => {
+        await new Promise((r) => setTimeout(r, delay));
+        const res = await sendTo([sender], '🐾 Teste do Meu Pet+', 'Se você está vendo isto, as notificações estão funcionando!', { type: 'test' }, 'meupet', projectId, access);
+        console.log(JSON.stringify({ ev: 'test', uid: sender, ...res }));
+      };
+      ctx.waitUntil(run());
+      return json({ ok: true, devices: tokens.length, delay: delay / 1000 });
     }
 
     // Dados de demonstração: só para as contas de teste autorizadas.
@@ -79,42 +96,52 @@ export default {
     data.from = sender;
     const channel = data.channel === 'sos' ? 'sos' : 'meupet';
 
-    const sa = JSON.parse(env.SERVICE_ACCOUNT);
-    const access = await getAccessToken(sa);
-    let sent = 0;
-    let failed = 0;
-    for (const uid of to) {
-      const tokens = await getTokens(projectId, uid, access);
-      const stale = [];
-      for (const token of tokens) {
-        const r = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${access}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: {
-              token,
-              notification: { title, body: text },
-              data,
-              android: {
-                priority: 'HIGH',
-                notification: { channel_id: channel, sound: 'default', icon: 'ic_stat_meupet', color: '#1B9AAA' },
-              },
-            },
-          }),
-        });
-        if (r.ok) {
-          sent++;
-        } else {
-          failed++;
-          const err = await r.text();
-          if (r.status === 404 || err.includes('UNREGISTERED') || err.includes('INVALID_ARGUMENT')) stale.push(token);
-        }
-      }
-      if (stale.length) await removeTokens(projectId, uid, tokens.filter((t) => !stale.includes(t)), access);
-    }
-    return json({ sent, failed });
+    const access = await getAccessToken(JSON.parse(env.SERVICE_ACCOUNT));
+    const res = await sendTo(to, title, text, data, channel, projectId, access);
+    console.log(JSON.stringify({ ev: 'notify', from: sender, type: data.type || '', ...res }));
+    return json(res);
   },
 };
+
+/// Envia para todos os aparelhos de cada usuário; tira tokens que não valem mais.
+async function sendTo(uids, title, text, data, channel, projectId, access) {
+  let sent = 0;
+  let failed = 0;
+  const detail = [];
+  for (const uid of uids) {
+    const tokens = await getTokens(projectId, uid, access);
+    const stale = [];
+    const errs = [];
+    for (const token of tokens) {
+      const r = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${access}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: {
+            token,
+            notification: { title, body: text },
+            data,
+            android: {
+              priority: 'HIGH',
+              notification: { channel_id: channel, sound: 'default', icon: 'ic_stat_meupet', color: '#1B9AAA' },
+            },
+          },
+        }),
+      });
+      if (r.ok) {
+        sent++;
+      } else {
+        failed++;
+        const err = await r.text();
+        errs.push(`${r.status} ${err.slice(0, 160)}`);
+        if (r.status === 404 || err.includes('UNREGISTERED') || err.includes('INVALID_ARGUMENT')) stale.push(token);
+      }
+    }
+    if (stale.length) await removeTokens(projectId, uid, tokens.filter((t) => !stale.includes(t)), access);
+    detail.push({ uid, devices: tokens.length, errs });
+  }
+  return { sent, failed, detail };
+}
 
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json', ...CORS } });
