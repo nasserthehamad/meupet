@@ -66,6 +66,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'prices': {
             for (final c in _cats)
               if (parseMoney(_priceCtrl(c).text) != null) c: parseMoney(_priceCtrl(c).text),
+            if (_cats.contains('TaxiPet') && parseMoney(_priceCtrl(kTaxiKm).text) != null)
+              kTaxiKm: parseMoney(_priceCtrl(kTaxiKm).text),
           },
           'lat': _lat,
           'lng': _lng,
@@ -169,6 +171,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       controller: _priceCtrl(c.name),
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       decoration: inputDeco(c.name, icon: c.icon).copyWith(prefixText: 'R\$ '),
+                    ),
+                  ),
+                if (_cats.contains('TaxiPet'))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: TextField(
+                      key: const Key('preco_km'),
+                      controller: _priceCtrl(kTaxiKm),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: inputDeco('TaxiPet — por km rodado', icon: Icons.route_rounded, hint: 'Ex.: 2,50')
+                          .copyWith(prefixText: 'R\$ ', helperText: 'Valor da corrida = TaxiPet (saída) + km × este valor.'),
                     ),
                   ),
               ],

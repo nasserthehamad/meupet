@@ -48,13 +48,42 @@ class MenuButton extends StatelessWidget {
 }
 
 /// Sino de avisos (círculo preenchido com bolinha laranja).
+/// Sino do topo. A bolinha laranja só aparece quando há novidade: mensagem
+/// não lida, atendimento nas próximas 24h (tutor) ou pedido esperando
+/// resposta (prestador).
 class BellButton extends StatelessWidget {
   final Color color;
   final VoidCallback? onTap;
-  final bool dot;
-  const BellButton({super.key, this.color = AppColors.teal, this.onTap, this.dot = true});
+  final bool? dot; // null = automático
+  const BellButton({super.key, this.color = AppColors.teal, this.onTap, this.dot});
+
   @override
   Widget build(BuildContext context) {
+    if (dot != null) return _bell(dot!);
+    final uid = Session.current.value?.id ?? '';
+    if (uid.isEmpty) return _bell(false);
+    final prov = Session.current.value?.isProvider == true;
+    return StreamBuilder<bool>(
+      stream: Db.hasUnreadChats(uid),
+      builder: (context, chats) => StreamBuilder<List<Appointment>>(
+        stream: prov ? Db.providerAppointments(uid) : Db.tutorAppointments(uid),
+        builder: (context, ap) {
+          final now = DateTime.now();
+          final soon = (ap.data ?? const <Appointment>[]).any((a) {
+            if (prov) return a.status == 'pendente';
+            final d = a.dateTime;
+            return (a.status == 'confirmado' || a.status == 'pendente') &&
+                d != null &&
+                d.isAfter(now) &&
+                d.isBefore(now.add(const Duration(hours: 24)));
+          });
+          return _bell(chats.data == true || soon);
+        },
+      ),
+    );
+  }
+
+  Widget _bell(bool dot) {
     return InkWell(
       key: const Key('bell'),
       customBorder: const CircleBorder(),

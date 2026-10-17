@@ -139,59 +139,64 @@ class _ProviderHomeState extends State<ProviderHome> {
   // ------------------------------------------------------------ TaxiPet
   Widget _ridesView(AppUser? u, List<String> modes, String mode) {
     final now = DateTime.now();
-    return StreamBuilder<List<Ride>>(
-      stream: Db.driverRides(Session.uid),
-      builder: (context, snap) {
-        final q = _q.toLowerCase();
-        final all = (snap.data ?? [])
-            .where((r) => q.isEmpty || r.petName.toLowerCase().contains(q) || r.tutorName.toLowerCase().contains(q))
-            .toList();
-        final requests = all.where((r) => r.status == 'pedida').toList();
-        final active = all.where((r) => r.isActive && r.status != 'pedida' && _onDate(r.when)).toList();
-        return ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            _ProviderHeader(user: u, pending: requests.length, onNewRides: null),
-            SnakeBand(
-              index: 1,
-              padding: const EdgeInsets.fromLTRB(14, 16, 12, 18),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                _modeChips(modes, mode),
-                _searchRow(now),
-                const SizedBox(height: 14),
-                Row(children: [
-                  Text('Atendimentos', style: sectionStyle().copyWith(fontSize: 20)),
-                  const SizedBox(width: 8),
-                  Text('+CUIDADO', style: scriptStyle(26, const Color(0xFFCFD3D4))),
+    return RideOffers.builder((context, offers, loading) {
+      return StreamBuilder<List<Ride>>(
+        stream: Db.driverRides(Session.uid),
+        builder: (context, snap) {
+          final q = _q.toLowerCase();
+          bool match(Ride r) => q.isEmpty || r.petName.toLowerCase().contains(q) || r.tutorName.toLowerCase().contains(q);
+          final all = (snap.data ?? []).where(match).toList();
+          final requests = offers.where(match).toList();
+          final active = all.where((r) => r.isActive && r.status != 'pedida' && _onDate(r.when)).toList();
+          return ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              _ProviderHeader(user: u, pending: requests.length, onNewRides: null),
+              SnakeBand(
+                index: 1,
+                padding: const EdgeInsets.fromLTRB(14, 16, 12, 18),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  _modeChips(modes, mode),
+                  _searchRow(now),
+                  const SizedBox(height: 14),
+                  Row(children: [
+                    Expanded(child: Text('Novas corridas', style: sectionStyle().copyWith(fontSize: 20))),
+                    if (requests.isNotEmpty) Image.asset('assets/images/alerta.gif', width: 30, height: 30),
+                  ]),
+                  const Text('Pedidos perto de você e os que pediram direto para você.',
+                      style: TextStyle(fontSize: 12, color: AppColors.muted)),
+                  const SizedBox(height: 4),
+                  if (loading)
+                    const Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator()))
+                  else if (requests.isEmpty)
+                    const EmptyState(icon: Icons.local_taxi_rounded, text: 'Nenhum pedido de corrida agora.\nAvisamos quando chegar um perto de você.')
+                  else
+                    for (final r in requests) RideOfferTile(r: r),
                 ]),
-                if (!snap.hasData)
-                  const Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator()))
-                else if (active.isEmpty)
-                  const EmptyState(icon: Icons.local_taxi_rounded, text: 'Nenhuma corrida confirmada.\nNovos pedidos aparecem em "Aceitar Agendamentos".')
-                else
-                  for (final r in active) RideTile(r: r, driverView: true),
-              ]),
-            ),
-            SnakeBand(
-              index: 2,
-              roundBottom: false,
-              padding: const EdgeInsets.fromLTRB(14, 10, 8, 40),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                Row(children: [
-                  Expanded(child: Text('Aceitar Agendamentos', style: sectionStyle().copyWith(fontSize: 20))),
-                  if (requests.isNotEmpty) Image.asset('assets/images/alerta.gif', width: 30, height: 30),
+              ),
+              SnakeBand(
+                index: 2,
+                roundBottom: false,
+                padding: const EdgeInsets.fromLTRB(14, 10, 8, 40),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  Row(children: [
+                    Text('Minhas corridas', style: sectionStyle().copyWith(fontSize: 20)),
+                    const SizedBox(width: 8),
+                    Text('+CUIDADO', style: scriptStyle(26, const Color(0xFFCFD3D4))),
+                  ]),
+                  if (!snap.hasData)
+                    const Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator()))
+                  else if (active.isEmpty)
+                    const EmptyState(icon: Icons.local_taxi_rounded, text: 'Nenhuma corrida confirmada.\nAceite um pedido em "Novas corridas".')
+                  else
+                    for (final r in active) RideTile(r: r, driverView: true),
                 ]),
-                const SizedBox(height: 6),
-                if (snap.hasData && requests.isEmpty)
-                  const EmptyState(icon: Icons.inbox_rounded, text: 'Nenhum pedido de corrida agora.')
-                else
-                  for (final r in requests) _RideRequestTile(r: r),
-              ]),
-            ),
-          ],
-        );
-      },
-    );
+              ),
+            ],
+          );
+        },
+      );
+    });
   }
 
   // ------------------------------------------------------------ Loja
@@ -521,10 +526,8 @@ class _NewRideBadge extends StatelessWidget {
   const _NewRideBadge({this.onTap});
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<Ride>>(
-      stream: Db.driverRides(Session.uid),
-      builder: (context, snap) {
-        final n = (snap.data ?? []).where((r) => r.status == 'pedida').length;
+    return RideOffers.builder((context, offers, _) {
+        final n = offers.length;
         return InkWell(
           key: const Key('nova_corrida'),
           borderRadius: BorderRadius.circular(14),
@@ -549,8 +552,7 @@ class _NewRideBadge extends StatelessWidget {
             ]),
           ),
         );
-      },
-    );
+      });
   }
 }
 
@@ -593,52 +595,6 @@ class _ImgActionIcon extends StatelessWidget {
           Text(label, style: const TextStyle(fontSize: 9, color: AppColors.muted)),
         ]),
       ),
-    );
-  }
-}
-
-/// Pedido de corrida (Confirmar / Reagendar).
-class _RideRequestTile extends StatelessWidget {
-  final Ride r;
-  const _RideRequestTile({required this.r});
-  @override
-  Widget build(BuildContext context) {
-    final st = TextStyle(fontSize: 12, color: AppColors.text2, height: 1.25);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(children: [
-        DateBadge(r.when, big: true),
-        const SizedBox(width: 6),
-        PhotoAvatar(photo: r.petPhoto, size: 44, border: AppColors.surface),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(fmtTime(r.when), style: st.copyWith(fontWeight: FontWeight.w600, color: AppColors.text)),
-            Text('Nome: ${r.petName}', style: st, maxLines: 1, overflow: TextOverflow.ellipsis),
-            Text('Animal: ${r.petSpecies}', style: st, maxLines: 1, overflow: TextOverflow.ellipsis),
-            Row(children: [
-              const Icon(Icons.local_taxi_rounded, size: 14, color: AppColors.orange),
-              const SizedBox(width: 3),
-              Expanded(
-                child: Text(r.pickup, maxLines: 1, overflow: TextOverflow.ellipsis, style: st.copyWith(color: AppColors.orange, fontSize: 11)),
-              ),
-            ]),
-          ]),
-        ),
-        _ConfirmAction(onTap: () async {
-          await Db.setRideStatus(r, 'aceita');
-          if (context.mounted) showSnack(context, 'Corrida de ${r.petName} confirmada!');
-        }),
-        _ImgAction(asset: 'assets/ui/reagendar.png', label: 'Reagendar', onTap: () => rescheduleRide(context, r)),
-        InkWell(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => RideScreen(rideId: r.id))),
-          borderRadius: BorderRadius.circular(16),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 10),
-            child: Icon(Icons.chevron_right_rounded, color: AppColors.muted, size: 22),
-          ),
-        ),
-      ]),
     );
   }
 }

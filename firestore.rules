@@ -86,13 +86,22 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.tutorId == me();
     }
 
-    // TaxiPet: o tutor pede; o motorista escolhido aceita e atualiza as etapas.
+    // TaxiPet (como Uber): o tutor pede para um motorista ou deixa o pedido
+    // aberto (driverId vazio) para os motoristas TaxiPet; o primeiro que
+    // aceitar fica com a corrida e atualiza as etapas e a posição.
+    function isTaxi() {
+      return signedIn() && get(/databases/$(database)/documents/users/$(me())).data.get('categories', []).hasAny(['TaxiPet']);
+    }
     match /rides/{id} {
-      allow read: if signedIn() && (resource.data.tutorId == me() || resource.data.driverId == me());
+      allow read: if signedIn() && (resource.data.tutorId == me() || resource.data.driverId == me()
+        || (resource.data.driverId == '' && isTaxi()));
       allow create: if signedIn() && request.resource.data.tutorId == me()
         && request.resource.data.status == 'pedida';
       allow update: if signedIn() && (
         resource.data.driverId == me()
+        || (resource.data.driverId == '' && resource.data.status == 'pedida' && isTaxi()
+          && request.resource.data.driverId == me() && request.resource.data.status == 'aceita'
+          && request.resource.data.tutorId == resource.data.tutorId)
         || (resource.data.tutorId == me()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'when', 'updatedAt'])
           && (request.resource.data.status == resource.data.status

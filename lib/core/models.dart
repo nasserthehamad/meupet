@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'location.dart';
+
 DateTime? tsToDate(dynamic v) {
   if (v is Timestamp) return v.toDate();
   if (v is DateTime) return v;
@@ -565,6 +567,20 @@ class Ride {
   final String notes;
   final String status;
   final DateTime? updatedAt;
+  // Mapa (corridas novas): partida, destino, rota e preço.
+  final double? pickupLat;
+  final double? pickupLng;
+  final double? destLat;
+  final double? destLng;
+  final double? km;
+  final int? minutes;
+  final double? price;
+  final double? priceMin;
+  final double? priceMax;
+  // Posição do motorista ao vivo.
+  final double? driverLat;
+  final double? driverLng;
+  final DateTime? driverAt;
 
   const Ride({
     required this.id,
@@ -584,7 +600,35 @@ class Ride {
     this.notes = '',
     required this.status,
     this.updatedAt,
+    this.pickupLat,
+    this.pickupLng,
+    this.destLat,
+    this.destLng,
+    this.km,
+    this.minutes,
+    this.price,
+    this.priceMin,
+    this.priceMax,
+    this.driverLat,
+    this.driverLng,
+    this.driverAt,
   });
+
+  /// Pedido aberto: vai para os motoristas perto, o primeiro que aceitar leva.
+  bool get isOpen => driverId.isEmpty && status == 'pedida';
+  GeoPos? get pickupPos => pickupLat == null || pickupLng == null ? null : GeoPos(pickupLat!, pickupLng!);
+  GeoPos? get destPos => destLat == null || destLng == null ? null : GeoPos(destLat!, destLng!);
+  GeoPos? get driverPos => driverLat == null || driverLng == null ? null : GeoPos(driverLat!, driverLng!);
+  bool get hasMap => pickupPos != null && destPos != null;
+
+  /// Preço combinado, faixa estimada (pedido aberto) ou vazio.
+  String get priceLabel {
+    if (price != null) return fmtMoney(price!);
+    if (priceMin != null && priceMax != null) {
+      return priceMin == priceMax ? fmtMoney(priceMin!) : '${fmtMoney(priceMin!)} – ${fmtMoney(priceMax!)}';
+    }
+    return '';
+  }
 
   static const flow = ['pedida', 'aceita', 'a_caminho', 'pet_a_bordo', 'chegou', 'concluida'];
   bool get isActive => !const ['concluida', 'recusada', 'cancelada'].contains(status);
@@ -617,9 +661,37 @@ class Ride {
       notes: m['notes'] ?? '',
       status: m['status'] ?? 'pedida',
       updatedAt: tsToDate(m['updatedAt']),
+      pickupLat: _d(m['pickupLat']),
+      pickupLng: _d(m['pickupLng']),
+      destLat: _d(m['destLat']),
+      destLng: _d(m['destLng']),
+      km: _d(m['km']),
+      minutes: (m['minutes'] as num?)?.toInt(),
+      price: _d(m['price']),
+      priceMin: _d(m['priceMin']),
+      priceMax: _d(m['priceMax']),
+      driverLat: _d(m['driverLat']),
+      driverLng: _d(m['driverLng']),
+      driverAt: tsToDate(m['driverAt']),
     );
   }
 }
+
+double? _d(dynamic v) => (v as num?)?.toDouble();
+
+/// Chave do preço por km do TaxiPet no perfil do motorista.
+const kTaxiKm = 'TaxiPet km';
+
+/// Preço da corrida pelo que o motorista informou: "a partir de" + valor por km.
+double? taxiFare(AppUser d, double km) {
+  final base = d.prices['TaxiPet'];
+  final perKm = d.prices[kTaxiKm];
+  if (base == null && perKm == null) return null;
+  return (((base ?? 0) + (perKm ?? 0) * km) * 100).roundToDouble() / 100;
+}
+
+/// Situação da corrida em texto ("Procurando motorista" quando está aberta).
+String rideStatusText(Ride r) => r.isOpen ? 'Procurando motorista' : (rideStatusLabel[r.status] ?? r.status);
 
 const rideStatusLabel = {
   'pedida': 'Aguardando o motorista',

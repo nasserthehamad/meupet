@@ -58,82 +58,115 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
+    final form = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 28),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, mainAxisSize: MainAxisSize.min, children: [
+        const SizedBox(height: 8),
+        const Text('Login', textAlign: TextAlign.center, style: TextStyle(fontSize: 34, fontWeight: FontWeight.w700)),
+        const Text('Insira seus dados para continuar.', textAlign: TextAlign.center, style: TextStyle(color: AppColors.muted)),
+        const SizedBox(height: 22),
+        TextField(
+          controller: _email,
+          keyboardType: TextInputType.emailAddress,
+          style: const TextStyle(color: Colors.white),
+          cursorColor: Colors.white,
+          decoration: inputDeco('E-MAIL', icon: Icons.mail_rounded, filledTeal: true),
+        ),
+        const SizedBox(height: 14),
+        TextField(
+          controller: _pass,
+          obscureText: _obscure,
+          style: const TextStyle(color: Colors.white),
+          cursorColor: Colors.white,
+          onSubmitted: (_) => _login(),
+          decoration: inputDeco('SENHA', icon: Icons.lock_rounded, filledTeal: true).copyWith(
+            suffixIcon: IconButton(
+              icon: Icon(_obscure ? Icons.visibility_rounded : Icons.visibility_off_rounded, color: Colors.white),
+              onPressed: () => setState(() => _obscure = !_obscure),
+            ),
+          ),
+        ),
+        const SizedBox(height: 22),
+        Center(
+          child: SizedBox(
+            width: 200,
+            child: OrangeButton(label: 'Entrar', loading: _loading, onPressed: _login),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(
+            child: TextButton(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SignupScreen())),
+              child: const Text('Não tem cadastro?\nCadastre-se AQUI!',
+                  textAlign: TextAlign.center, style: TextStyle(color: AppColors.teal, fontSize: 13)),
+            ),
+          ),
+          Expanded(
+            child: TextButton(
+              onPressed: _forgot,
+              child: const Text('Esqueceu sua senha?\nClique AQUI!',
+                  textAlign: TextAlign.center, style: TextStyle(color: AppColors.orange, fontSize: 13)),
+            ),
+          ),
+        ]),
+      ]),
+    );
     // A entrada é sempre clara, como no protótipo (vídeo e campos azuis).
     return Theme(
       data: buildTheme(),
       child: Scaffold(
-      backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: h * 0.42),
-                child: const Center(child: LoginHero()),
+        backgroundColor: Colors.white,
+        body: LayoutBuilder(builder: (context, c) {
+          final pad = MediaQuery.paddingOf(context);
+          final keyboard = MediaQuery.viewInsetsOf(context).bottom > 0;
+          // Foto dos bichinhos sempre inteira, do tamanho da largura da tela.
+          final footer = Image.asset(
+            'assets/images/animais_rodape.jpg',
+            width: c.maxWidth,
+            height: c.maxWidth * 317 / 900,
+            fit: BoxFit.fill,
+          );
+          const formH = 372.0;
+          final footerH = c.maxWidth * 317 / 900;
+          final heroSpace = c.maxHeight - pad.top - formH - footerH - pad.bottom;
+          if (!keyboard && heroSpace >= 170) {
+            // Cabe tudo: tela fixa, sem rolar. O vídeo ocupa o espaço que sobra
+            // e a foto fica presa no rodapé.
+            return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              SizedBox(height: pad.top),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Center(
+                    child: ConstrainedBox(constraints: BoxConstraints(maxHeight: h * 0.42), child: const LoginHero()),
+                  ),
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                const SizedBox(height: 8),
-                const Text('Login', textAlign: TextAlign.center, style: TextStyle(fontSize: 34, fontWeight: FontWeight.w700)),
-                const Text('Insira seus dados para continuar.',
-                    textAlign: TextAlign.center, style: TextStyle(color: AppColors.muted)),
-                const SizedBox(height: 22),
-                TextField(
-                  controller: _email,
-                  keyboardType: TextInputType.emailAddress,
-                  style: const TextStyle(color: Colors.white),
-                  cursorColor: Colors.white,
-                  decoration: inputDeco('E-MAIL', icon: Icons.mail_rounded, filledTeal: true),
+              form,
+              const SizedBox(height: 8),
+              footer,
+              SizedBox(height: pad.bottom),
+            ]);
+          }
+          // Tela baixa ou teclado aberto: rola.
+          return SingleChildScrollView(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Padding(
+                padding: EdgeInsets.only(top: pad.top),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: h * 0.42),
+                  child: const Center(child: LoginHero()),
                 ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: _pass,
-                  obscureText: _obscure,
-                  style: const TextStyle(color: Colors.white),
-                  cursorColor: Colors.white,
-                  onSubmitted: (_) => _login(),
-                  decoration: inputDeco('SENHA', icon: Icons.lock_rounded, filledTeal: true).copyWith(
-                    suffixIcon: IconButton(
-                      icon: Icon(_obscure ? Icons.visibility_rounded : Icons.visibility_off_rounded, color: Colors.white),
-                      onPressed: () => setState(() => _obscure = !_obscure),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 22),
-                Center(
-                  child: SizedBox(
-                    width: 200,
-                    child: OrangeButton(label: 'Entrar', loading: _loading, onPressed: _login),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SignupScreen())),
-                      child: const Text('Não tem cadastro?\nCadastre-se AQUI!',
-                          textAlign: TextAlign.center, style: TextStyle(color: AppColors.teal, fontSize: 13)),
-                    ),
-                  ),
-                  Expanded(
-                    child: TextButton(
-                      onPressed: _forgot,
-                      child: const Text('Esqueceu sua senha?\nClique AQUI!',
-                          textAlign: TextAlign.center, style: TextStyle(color: AppColors.orange, fontSize: 13)),
-                    ),
-                  ),
-                ]),
-              ]),
-            ),
-            const SizedBox(height: 8),
-            Image.asset('assets/images/animais_rodape.jpg', fit: BoxFit.fitWidth),
-          ],
-        ),
+              ),
+              form,
+              const SizedBox(height: 8),
+              footer,
+              SizedBox(height: pad.bottom),
+            ]),
+          );
+        }),
       ),
-    ));
+    );
   }
 }

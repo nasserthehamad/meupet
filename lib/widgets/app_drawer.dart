@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/catalog.dart';
+import '../core/demo_seed.dart';
 import '../core/db.dart';
 import '../core/theme.dart';
 import '../core/theme_controller.dart';
@@ -64,6 +65,38 @@ class AppDrawer extends StatelessWidget {
         actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('OK'))],
       ),
     );
+  }
+
+  Future<void> _seed(BuildContext context) async {
+    context = _close(context);
+    if (!await confirm(context, 'Popular dados de teste?',
+        'Cria prestadores de demonstração em Bauru e preenche a Zuka com vacinas, agendamentos, receitas, conversas, corrida e pedidos. Pode repetir quando quiser: os dados de teste são substituídos, nada seu é apagado.',
+        ok: 'Popular')) {
+      return;
+    }
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(children: [
+          CircularProgressIndicator(),
+          SizedBox(width: 16),
+          Expanded(child: Text('Criando os dados de teste…')),
+        ]),
+      ),
+    );
+    String msg;
+    var error = false;
+    try {
+      msg = 'Pronto! ${await seedDemoData()}';
+    } catch (e) {
+      msg = 'Não deu certo: $e';
+      error = true;
+    }
+    if (!context.mounted) return;
+    Navigator.of(context, rootNavigator: true).pop();
+    showSnack(context, msg, error: error);
   }
 
   Future<void> _theme(BuildContext context) async {
@@ -285,6 +318,15 @@ class AppDrawer extends StatelessWidget {
               onTap: () => _switchAccount(context, exit: false),
             ),
             _Item(color: const Color(0xFF7E8587), icon: Icons.logout_rounded, label: 'Sair', onTap: () => _switchAccount(context, exit: true)),
+            if (canSeedDemo(u?.email ?? ''))
+              _Item(
+                key: const Key('dados_teste'),
+                color: AppColors.purple,
+                icon: Icons.science_rounded,
+                label: 'Popular dados de teste',
+                sub: 'Prestadores em Bauru e dados da Zuka',
+                onTap: () => _seed(context),
+              ),
             const _Divider(),
             _Item(color: AppColors.yellow, icon: Icons.star_rounded, label: 'Avaliar o App', onTap: () => _rate(context)),
             _Item(color: kOlive, icon: Icons.share_rounded, label: 'Compartilhar o App', onTap: () => _share(context)),

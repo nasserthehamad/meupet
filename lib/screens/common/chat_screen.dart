@@ -17,6 +17,7 @@ import '../../core/push.dart';
 import '../../core/theme.dart';
 import '../../core/uploads.dart';
 import '../../widgets/common.dart';
+import '../../widgets/emoji_panel.dart';
 
 const _bubbleOther = Color(0xFFF2A46B);
 const _bubbleMine = Color(0xFF5BB8C9);
@@ -36,6 +37,7 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   late final _ctrl = TextEditingController(text: widget.initialText);
   final _focus = FocusNode();
+  bool _emoji = false; // painel de emojis aberto (no lugar do teclado)
   AppUser? _other;
   bool _uploading = false;
   AudioRecorder? _rec;
@@ -201,7 +203,13 @@ class _ChatScreenState extends State<ChatScreen> {
     final myPhoto = Session.current.value?.photo;
     final otherPhoto = widget.otherPhoto ?? _other?.photo;
     final top = MediaQuery.of(context).padding.top;
-    return Scaffold(
+    return PopScope(
+      // Voltar fecha primeiro o painel de emojis.
+      canPop: !_emoji,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _emoji) setState(() => _emoji = false);
+      },
+      child: Scaffold(
       backgroundColor: AppColors.bg,
       body: Column(children: [
         // Cabeçalho
@@ -295,6 +303,7 @@ class _ChatScreenState extends State<ChatScreen> {
         // Barra de digitação
         SafeArea(
           top: false,
+          bottom: !_emoji,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
             child: Row(children: [
@@ -320,13 +329,27 @@ class _ChatScreenState extends State<ChatScreen> {
                         ])
                       : Row(children: [
                     IconButton(
-                      onPressed: () => _focus.requestFocus(),
-                      icon: const Icon(Icons.sentiment_satisfied_alt_rounded, color: AppColors.yellow, size: 28),
+                      key: const Key('emoji'),
+                      tooltip: _emoji ? 'Teclado' : 'Emojis',
+                      onPressed: () {
+                        if (_emoji) {
+                          setState(() => _emoji = false);
+                          _focus.requestFocus();
+                        } else {
+                          _focus.unfocus();
+                          setState(() => _emoji = true);
+                        }
+                      },
+                      icon: Icon(_emoji ? Icons.keyboard_rounded : Icons.sentiment_satisfied_alt_rounded,
+                          color: _emoji ? Colors.white : AppColors.yellow, size: 28),
                     ),
                     Expanded(
                       child: TextField(
                         controller: _ctrl,
                         focusNode: _focus,
+                        onTap: () {
+                          if (_emoji) setState(() => _emoji = false);
+                        },
                         minLines: 1,
                         maxLines: 4,
                         style: const TextStyle(color: Colors.white),
@@ -371,7 +394,16 @@ class _ChatScreenState extends State<ChatScreen> {
             ]),
           ),
         ),
+        if (_emoji)
+          SafeArea(
+            top: false,
+            child: EmojiPanel(
+              onPick: (e) => insertAtCursor(_ctrl, e),
+              onBackspace: () => backspaceAtCursor(_ctrl),
+            ),
+          ),
       ]),
+    ),
     );
   }
 }
@@ -457,7 +489,8 @@ class _Bubble extends StatelessWidget {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
         if (attachment != null) _attachmentView(context, attachment!),
-        if (text.isNotEmpty) Text(text, style: const TextStyle(color: Colors.white, fontSize: 15.5, height: 1.3)),
+        if (text.isNotEmpty)
+          Text(text, style: TextStyle(color: Colors.white, fontSize: isBigEmoji(text) ? 36 : 15.5, height: isBigEmoji(text) ? 1.1 : 1.3)),
         const SizedBox(height: 2),
         Text(time, style: const TextStyle(color: Colors.white70, fontSize: 10)),
       ]),

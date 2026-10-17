@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/db.dart';
 import '../../core/models.dart';
+import '../../core/push.dart';
 import '../../core/theme.dart';
 import '../../widgets/app_drawer.dart';
 import '../common/emergency_screen.dart';
@@ -67,6 +68,8 @@ class _ProviderShellState extends State<ProviderShell> {
   @override
   void dispose() {
     _sub?.cancel();
+    // O aviso de SOS não pode ficar na tela depois de sair da conta.
+    WidgetsBinding.instance.addPostFrameCallback((_) => Push.messengerKey.currentState?.clearMaterialBanners());
     super.dispose();
   }
 

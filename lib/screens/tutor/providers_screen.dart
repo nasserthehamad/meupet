@@ -317,7 +317,7 @@ class ProviderDetailScreen extends StatelessWidget {
                       for (final c in p.categories)
                         Chip(
                           avatar: Icon(iconForService(c), size: 16, color: AppColors.teal),
-                          label: Text(p.prices[c] == null ? c : '$c · ${fmtMoney(p.prices[c]!)}'),
+                          label: Text(p.prices[c] == null ? c : '$c · ${fmtMoney(p.prices[c]!)}${c == 'TaxiPet' && p.prices[kTaxiKm] != null ? ' + ${fmtMoney(p.prices[kTaxiKm]!)}/km' : ''}'),
                           backgroundColor: AppColors.surface,
                         ),
                     ]),

@@ -12,6 +12,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:meupet/core/catalog.dart';
 import 'package:meupet/core/db.dart';
+import 'package:meupet/core/geo.dart';
 import 'package:meupet/core/location.dart';
 import 'package:meupet/core/push.dart';
 import 'package:meupet/core/models.dart';
@@ -36,6 +37,7 @@ import 'package:meupet/screens/tutor/pet_form_screen.dart';
 import 'package:meupet/screens/tutor/providers_screen.dart';
 import 'package:meupet/screens/tutor/tutor_shell.dart';
 import 'package:meupet/widgets/login_hero.dart';
+import 'package:meupet/widgets/taxi_map.dart';
 
 String photo(String name) => base64Encode(File('screenshots_test/fixtures/$name.jpg').readAsBytesSync());
 Timestamp ts(DateTime d) => Timestamp.fromDate(d);
@@ -48,6 +50,7 @@ late AppUser taxi;
 late AppUser shop;
 late String rideId;
 late String orderId;
+late String openRideId;
 
 Future<void> loadFonts() async {
   final manifest = json.decode(await rootBundle.loadString('FontManifest.json')) as List<dynamic>;
@@ -91,7 +94,8 @@ Future<FakeFirebaseFirestore> seed() async {
       'businessName': 'Pet Taxi', 'address': 'Atende toda a zona sul', 'city': 'São Paulo',
       'categories': ['TaxiPet', 'DogWalker', 'Banho e Tosa'],
       'animals': ['Cachorro', 'Gato'],
-      'prices': {'TaxiPet': 35, 'DogWalker': 30, 'Banho e Tosa': 60},
+      'prices': {'TaxiPet': 15, 'TaxiPet km': 2.5, 'DogWalker': 30, 'Banho e Tosa': 60},
+      'lat': -23.5800, 'lng': -46.6400,
     },
   };
   for (final e in users.entries) {
@@ -231,16 +235,26 @@ Future<FakeFirebaseFirestore> seed() async {
   // ---- fase 3: TaxiPet, loja, avaliação do pet, anexos
   taxi = AppUser.fromDoc(await db.collection('users').doc('taxi1').get());
   shop = AppUser.fromDoc(await db.collection('users').doc('shop1').get());
-  Future<String> ride(String pet, String name, String species, String pickup, String dest, DateTime when, String status, {String notes = ''}) async {
+  Future<String> ride(String pet, String name, String species, String pickup, String dest, DateTime when, String status,
+      {String notes = '', bool open = false, bool driverHere = false}) async {
     final r = await db.collection('rides').add({
       'tutorId': 'tutor1', 'tutorName': 'Jiara Martins', 'tutorPhone': '(11) 98888-1234', 'petId': pet, 'petName': name,
-      'petSpecies': species, 'petPhoto': photo(pet), 'driverId': 'taxi1', 'driverName': 'Pet Taxi', 'driverPhone': '(11) 97777-0000',
+      'petSpecies': species, 'petPhoto': photo(pet), 'driverId': open ? '' : 'taxi1', 'driverName': open ? '' : 'Pet Taxi',
+      'driverPhone': open ? '' : '(11) 97777-0000',
       'pickup': pickup, 'destination': dest, 'when': ts(when), 'notes': notes, 'status': status, 'updatedAt': ts(when),
+      'pickupLat': -23.5874, 'pickupLng': -46.6576, 'destLat': -23.5960, 'destLng': -46.6610, 'km': 2.1, 'minutes': 9,
+      if (!open) 'price': 20.25,
+      if (open) 'priceMin': 20.25,
+      if (open) 'priceMax': 38.9,
+      if (driverHere) 'driverLat': -23.5838,
+      if (driverHere) 'driverLng': -46.6522,
     });
     return r.id;
   }
   rideId = await ride('athos', 'Athos', 'Cachorro', 'R. das Flores, 120 — Vila Mariana', 'Vet Amicão — Av. do Estado, 1200', day(0, 15), 'a_caminho',
-      notes: 'Ida e volta. Ele é grande, vai na caixa G.');
+      notes: 'Ida e volta. Ele é grande, vai na caixa G.', driverHere: true);
+  openRideId = await ride('sanna', 'Sanna', 'Aves', 'R. das Flores, 120, Vila Mariana, São Paulo, SP', 'Vet Amicão, Av. do Estado, 1200, São Paulo, SP',
+      DateTime.now(), 'pedida', open: true, notes: 'Gaiola pequena.');
   await ride('lolla', 'Lolla', 'Coelho', 'R. das Flores, 120 — Vila Mariana', 'Mania de Bicho — R. Gerson França, 88', day(1, 9, 30), 'pedida');
   await ride('zuka', 'Zuka', 'Gato', 'R. das Flores, 120 — Vila Mariana', 'Vet Amicão — Av. do Estado, 1200', day(2, 8), 'aceita');
   final products = [
@@ -373,6 +387,19 @@ void main() {
   ProviderShell.alertBanner = false;
   Push.enabled = false;
   LocationService.testOverride = () => const GeoPos(-23.5874, -46.6576);
+  TaxiMap.testMode = true;
+  GeoService.testReverse = (lat, lng) async => 'R. das Flores, 120, Vila Mariana, São Paulo, SP';
+  GeoService.testSearch = (q) async => const [
+        Place('Vet Amicão', 'Av. do Estado, 1200, Cambuci, São Paulo, SP', -23.5960, -46.6610),
+        Place('Vet Amicão Pinheiros', 'R. dos Pinheiros, 500, Pinheiros, São Paulo, SP', -23.5660, -46.6840),
+        Place('Hospital Veterinário Vila Mariana', 'R. Domingos de Morais, 2100, São Paulo, SP', -23.5890, -46.6370),
+      ];
+  GeoService.testRoute = (a, b) async => RouteInfo(2.1, 9, [
+        a,
+        GeoPos(a.lat - 0.002, a.lng - 0.004),
+        GeoPos((a.lat + b.lat) / 2, (a.lng + b.lng) / 2 - 0.003),
+        b,
+      ]);
   setUpAll(loadFonts);
 
   testWidgets('01 login', (t) => shot(t, '01_login', () => const LoginScreen()));
@@ -411,7 +438,7 @@ void main() {
   testWidgets('31 perto de mim', (t) => shot(t, '31_perto_de_mim',
       () => ProvidersListScreen(title: 'Perto de mim', categories: allServiceCats.map((c) => c.name).toList(), nearMe: true), as: 'tutor'));
   testWidgets('32 avaliar', (t) => shot(t, '32_avaliar', () => ProviderDetailScreen(provider: vet), as: 'tutor', act: tapKey('avaliar')));
-  testWidgets('33 taxi pedir', (t) => shot(t, '33_taxi_pedir', () => RideRequestScreen(driver: taxi), as: 'tutor'));
+  testWidgets('33 taxi pedir', (t) => shot(t, '33_taxi_pedir', () => const RideRequestScreen(), as: 'tutor'));
   testWidgets('34 corrida tutor', (t) => shot(t, '34_corrida_tutor', () => RideScreen(rideId: rideId), as: 'tutor'));
   testWidgets('35 taxi inicio', (t) => shot(t, '35_taxi_inicio', () => const ProviderShell(), as: 'taxi'));
   testWidgets('36 loja vitrine', (t) => shot(t, '36_loja_vitrine', () => StoreScreen(store: shop), as: 'tutor',
@@ -426,6 +453,27 @@ void main() {
       act: (t) async => t.tap(find.text('Info. do pet'))));
   testWidgets('40 chat anexos', (t) => shot(t, '40_chat_anexos',
       () => ChatScreen(chatId: Db.chatIdFor('tutor1', 'shop1'), otherName: 'Mania de Bicho', otherId: 'shop1'), as: 'tutor'));
+
+  // TaxiPet tipo Uber, emojis
+  Future<void> buscaDestino(WidgetTester t) async {
+    await tapKey('para_onde')(t);
+    await settle(t);
+    await t.enterText(find.byKey(const Key('busca_endereco')), 'Vet Amicão');
+    await t.pump(const Duration(milliseconds: 600));
+  }
+
+  testWidgets('53 taxi busca', (t) => shot(t, '53_taxi_busca', () => const RideRequestScreen(), as: 'tutor', act: buscaDestino));
+  testWidgets('54 taxi resumo', (t) => shot(t, '54_taxi_resumo', () => const RideRequestScreen(), as: 'tutor', act: (t) async {
+        await buscaDestino(t);
+        await settle(t);
+        await tapKey('lugar_0')(t);
+        await settle(t);
+        await tapKey('pet_athos')(t);
+      }));
+  testWidgets('55 taxi oferta', (t) => shot(t, '55_taxi_oferta_aberta', () => RideScreen(rideId: openRideId), as: 'taxi'));
+  testWidgets('56 taxi procurando', (t) => shot(t, '56_taxi_procurando', () => RideScreen(rideId: openRideId), as: 'tutor'));
+  testWidgets('57 chat emoji', (t) => shot(t, '57_chat_emoji',
+      () => ChatScreen(chatId: Db.chatIdFor('tutor1', 'vet1'), otherName: 'Vet Amicão', otherId: 'vet1'), as: 'tutor', act: tapKey('emoji')));
 
   // Tema | Modo e modo escuro
   Future<void> menuTema(WidgetTester t) async {

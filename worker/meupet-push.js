@@ -8,6 +8,8 @@
 //   SERVICE_ACCOUNT  (Secret)  conteúdo do JSON da conta de serviço do Firebase
 //   PROJECT_ID       (Text)    meupet-2c05b
 
+import { seedDemo } from './seed.js';
+
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -37,15 +39,30 @@ export default {
       }
       return json(out);
     }
-    if (url.pathname !== '/notify' || req.method !== 'POST') return json({ error: 'not found' }, 404);
+    const isSeed = url.pathname === '/seed';
+    if ((url.pathname !== '/notify' && !isSeed) || req.method !== 'POST') return json({ error: 'not found' }, 404);
 
     const projectId = env.PROJECT_ID || 'meupet-2c05b';
     let sender;
+    let who;
     try {
       const idToken = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
-      sender = await verifyIdToken(idToken, projectId);
+      who = await verifyIdToken(idToken, projectId);
+      sender = who.sub;
     } catch (e) {
       return json({ error: 'unauthorized', detail: String(e.message || e) }, 401);
+    }
+
+    // Dados de demonstração: só para as contas de teste autorizadas.
+    if (isSeed) {
+      const allowed = String(env.SEED_EMAILS || '').toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
+      if (!who.email || !allowed.includes(String(who.email).toLowerCase())) return json({ error: 'forbidden' }, 403);
+      try {
+        const access = await getAccessToken(JSON.parse(env.SERVICE_ACCOUNT));
+        return json({ ok: true, ...(await seedDemo({ projectId, uid: sender, email: who.email, access })) });
+      } catch (e) {
+        return json({ error: 'seed', detail: String(e.message || e).slice(0, 400) }, 500);
+      }
     }
 
     let body;
@@ -143,7 +160,7 @@ async function verifyIdToken(token, projectId) {
   const key = await crypto.subtle.importKey('jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
   const ok = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, b64urlToBytes(parts[2]), enc.encode(`${parts[0]}.${parts[1]}`));
   if (!ok) throw new Error('assinatura');
-  return payload.sub;
+  return payload;
 }
 
 // ---------------------------------------------------------------- conta de serviço → OAuth

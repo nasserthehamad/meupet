@@ -6,6 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'geo.dart';
+import 'location.dart';
 import 'models.dart';
 import 'push.dart';
 
@@ -70,6 +72,10 @@ class Db {
       FirebaseAuth.instance.sendPasswordResetEmail(email: email.trim());
 
   static Future<void> signOut() async {
+    // Some com avisos da conta anterior (ex.: SOS do painel do prestador).
+    Push.messengerKey.currentState
+      ?..clearMaterialBanners()
+      ..clearSnackBars();
     await Push.unregister();
     await FirebaseAuth.instance.signOut();
   }
@@ -167,6 +173,15 @@ class Db {
   }
 
   // ---------- Chats ----------
+  static bool chatUnread(Map<String, dynamic> m, String me) =>
+      m['lastSender'] != null && m['lastSender'] != me && !(m['readBy'] is Map && (m['readBy'] as Map)[me] == true);
+
+  /// Alguma conversa com mensagem não lida?
+  static Stream<bool> hasUnreadChats(String uid) => chats
+      .where('participants', arrayContains: uid)
+      .snapshots()
+      .map((s) => s.docs.any((d) => d.data()['lastMessage'] != null && chatUnread(d.data(), uid)));
+
   static String chatIdFor(String a, String b) {
     final l = [a, b]..sort();
     return '${l[0]}_${l[1]}';
@@ -366,15 +381,42 @@ class Db {
 
   static Stream<Ride> rideStream(String id) => rides.doc(id).snapshots().map(Ride.fromDoc);
 
+  /// Pedidos abertos (sem motorista): todo motorista TaxiPet vê.
+  static Stream<List<Ride>> openRides() => rides
+      .where('driverId', isEqualTo: '')
+      .where('status', isEqualTo: 'pedida')
+      .snapshots()
+      .map((s) => _sortRides(s.docs.map(Ride.fromDoc).toList()));
+
+  /// Motoristas TaxiPet perto de um ponto (ou da mesma cidade, se não
+  /// marcaram a localização no perfil).
+  static Future<List<AppUser>> nearbyDrivers(GeoPos p, {String city = '', double radiusKm = 40}) async {
+    final q = await users.where('categories', arrayContains: 'TaxiPet').get();
+    final all = q.docs.map(AppUser.fromDoc).where((u) => u.id != Session.uid).toList();
+    final c = city.trim().toLowerCase();
+    final near = all.where((u) {
+      if (u.hasLocation) return distanceKm(p.lat, p.lng, u.lat!, u.lng!) <= radiusKm;
+      return c.isNotEmpty && u.city.trim().toLowerCase() == c;
+    }).toList();
+    near.sort((a, b) {
+      double d(AppUser u) => u.hasLocation ? distanceKm(p.lat, p.lng, u.lat!, u.lng!) : 999;
+      return d(a).compareTo(d(b));
+    });
+    return near;
+  }
+
   static Future<String> requestRide({
     required Pet pet,
-    required AppUser driver,
-    required String pickup,
-    required String destination,
+    AppUser? driver,
+    required Place pickup,
+    required Place destination,
+    required RouteInfo route,
     required DateTime when,
     String notes = '',
+    List<AppUser> nearby = const [],
   }) async {
     final me = Session.user;
+    final fares = [for (final d in nearby) taxiFare(d, route.km)].whereType<double>().toList()..sort();
     final ref = await rides.add({
       'tutorId': me.id,
       'tutorName': me.name,
@@ -383,21 +425,77 @@ class Db {
       'petName': pet.name,
       'petSpecies': pet.species,
       'petPhoto': pet.photo,
-      'driverId': driver.id,
-      'driverName': driver.displayName,
-      'driverPhone': driver.phone,
-      'pickup': pickup.trim(),
-      'destination': destination.trim(),
+      'driverId': driver?.id ?? '',
+      'driverName': driver?.displayName ?? '',
+      'driverPhone': driver?.phone ?? '',
+      'pickup': pickup.label,
+      'destination': destination.label,
+      'pickupLat': pickup.lat,
+      'pickupLng': pickup.lng,
+      'destLat': destination.lat,
+      'destLng': destination.lng,
+      'km': double.parse(route.km.toStringAsFixed(2)),
+      'minutes': route.minutes,
+      if (driver != null && taxiFare(driver, route.km) != null) 'price': taxiFare(driver, route.km),
+      if (driver == null && fares.isNotEmpty) 'priceMin': fares.first,
+      if (driver == null && fares.isNotEmpty) 'priceMax': fares.last,
+      'city': me.city,
       'when': Timestamp.fromDate(when),
       'notes': notes.trim(),
       'status': 'pedida',
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
-    Push.notify([driver.id], '🚕 Nova corrida: ${pet.name}', '${fmtDate(when)} às ${fmtTime(when)} · buscar em ${pickup.trim()}',
-        data: {'type': 'ride', 'id': ref.id});
+    final body = '${fmtDate(when)} às ${fmtTime(when)} · ${fmtKm(route.km)} · buscar em ${pickup.name}';
+    var targets = driver != null ? [driver.id] : [for (final d in nearby) d.id];
+    if (targets.isEmpty) {
+      // Ninguém perto (ou sem localização no perfil): avisa todos os motoristas.
+      try {
+        final all = await users.where('categories', arrayContains: 'TaxiPet').get();
+        targets = [for (final d in all.docs) if (d.id != me.id) d.id];
+      } catch (_) {}
+    }
+    if (targets.isNotEmpty) {
+      Push.notify(targets, '🚕 Nova corrida: ${pet.name} (${pet.species})', body, data: {'type': 'ride', 'id': ref.id});
+    }
     return ref.id;
   }
+
+  /// O motorista aceita. Pedido aberto: o primeiro que aceitar fica com ele.
+  static Future<bool> acceptRide(Ride r) async {
+    final me = Session.user;
+    final price = r.km == null ? null : taxiFare(me, r.km!);
+    final ref = rides.doc(r.id);
+    final ok = await fs.runTransaction<bool>((tx) async {
+      final snap = await tx.get(ref);
+      final m = snap.data() ?? const {};
+      final mine = m['driverId'] == me.id;
+      if (m['status'] != 'pedida' || !(mine || (m['driverId'] ?? '') == '')) return false;
+      tx.update(ref, {
+        'driverId': me.id,
+        'driverName': me.displayName,
+        'driverPhone': me.phone,
+        if (price != null) 'price': price,
+        'status': 'aceita',
+        'acceptedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    });
+    if (ok) {
+      Push.notify([r.tutorId], '🚕 ${me.displayName} aceitou a corrida',
+          '${r.petName} · ${fmtDate(r.when)} às ${fmtTime(r.when)}${price == null ? '' : ' · ${fmtMoney(price)}'}',
+          data: {'type': 'ride', 'id': r.id});
+    }
+    return ok;
+  }
+
+  /// Posição do motorista enquanto a corrida está em andamento.
+  static Future<void> updateDriverLocation(String rideId, GeoPos p) => rides.doc(rideId).update({
+        'driverLat': p.lat,
+        'driverLng': p.lng,
+        'driverAt': FieldValue.serverTimestamp(),
+      });
 
   static Future<void> setRideStatus(Ride r, String status, {DateTime? when}) async {
     await rides.doc(r.id).update({
@@ -407,7 +505,9 @@ class Db {
     });
     final byDriver = Session.uid == r.driverId;
     final label = when != null ? 'Corrida reagendada para ${fmtDate(when)} às ${fmtTime(when)}' : (rideStatusLabel[status] ?? status);
-    Push.notify([byDriver ? r.tutorId : r.driverId], byDriver ? '🚕 ${r.driverName}' : '🚕 ${r.tutorName}', '$label · ${r.petName}',
+    final to = byDriver ? r.tutorId : r.driverId;
+    if (to.isEmpty) return;
+    Push.notify([to], byDriver ? '🚕 ${r.driverName}' : '🚕 ${r.tutorName}', '$label · ${r.petName}',
         data: {'type': 'ride', 'id': r.id});
   }
 
