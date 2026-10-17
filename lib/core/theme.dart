@@ -64,6 +64,9 @@ InputDecoration inputDeco(String label, {IconData? icon, String? hint, bool fill
     filled: true,
     fillColor: filledTeal ? AppColors.teal : Colors.white,
     labelStyle: TextStyle(color: filledTeal ? Colors.white70 : AppColors.muted),
+    // No campo azul do login o rótulo não sobe para a borda (ficava cortado):
+    // ele funciona como texto de exemplo e o ícone mostra o que é cada campo.
+    floatingLabelBehavior: filledTeal ? FloatingLabelBehavior.never : null,
     floatingLabelStyle: TextStyle(color: filledTeal ? Colors.white : AppColors.teal),
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),

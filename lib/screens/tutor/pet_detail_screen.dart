@@ -1,10 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/db.dart';
 import '../../core/models.dart';
 import '../../core/theme.dart';
+import '../../core/uploads.dart';
 import '../../widgets/common.dart';
 import '../common/prescription_screens.dart';
 import 'pet_form_screen.dart';
@@ -543,9 +546,11 @@ class _RecordSection extends StatelessWidget {
                   ]),
                 ),
                 _MiniAction(
-                  icon: Icons.download_rounded,
+                  icon: (d.data()['fileUrl'] ?? '').toString().isNotEmpty ? Icons.attach_file_rounded : Icons.download_rounded,
                   label: 'Abrir',
-                  onTap: () => _showRecord(context, d),
+                  onTap: () => (d.data()['fileUrl'] ?? '').toString().isNotEmpty
+                      ? launchUrl(Uri.parse(d.data()['fileUrl']), mode: LaunchMode.externalApplication)
+                      : _showRecord(context, d),
                 ),
                 if (type == 'receita')
                   _MiniAction(
@@ -577,6 +582,15 @@ class _RecordSection extends StatelessWidget {
           if ((d.data()['crm'] ?? '').toString().isNotEmpty) Text('CRMV: ${d.data()['crm']}', style: const TextStyle(color: AppColors.muted)),
           const SizedBox(height: 12),
           Text((d.data()['notes'] ?? '').toString().isEmpty ? 'Sem observações.' : d.data()['notes']),
+          if ((d.data()['fileUrl'] ?? '').toString().isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: OutlinedButton.icon(
+                onPressed: () => launchUrl(Uri.parse(d.data()['fileUrl']), mode: LaunchMode.externalApplication),
+                icon: const Icon(Icons.attach_file_rounded),
+                label: Text('Abrir ${d.data()['fileName'] ?? 'arquivo'}'),
+              ),
+            ),
           const SizedBox(height: 16),
           Align(
             alignment: Alignment.centerRight,
@@ -603,6 +617,8 @@ Future<void> showRecordForm(BuildContext context, String petId, String type, Str
   final crm = TextEditingController();
   final notes = TextEditingController();
   DateTime date = DateTime.now();
+  Attachment? file;
+  var uploading = false;
   final hint = {
     'consulta': 'Ex.: Consulta de rotina',
     'receita': 'Ex.: Antibiótico Cefalexina 500mg',
@@ -636,6 +652,32 @@ Future<void> showRecordForm(BuildContext context, String petId, String type, Str
               },
             ),
             TextField(controller: notes, maxLines: 4, decoration: inputDeco(type == 'exame' ? 'Resultado / observações' : 'Prescrição / observações')),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: uploading
+                  ? null
+                  : () async {
+                      if (!Uploads.enabled) {
+                        showSnack(c, 'O envio de arquivos ainda está sendo configurado.', error: true);
+                        return;
+                      }
+                      final f = await FilePicker.pickFile(type: FileType.custom, allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png']);
+                      if (f == null) return;
+                      setS(() => uploading = true);
+                      try {
+                        final a = await Uploads.upload(await f.readAsBytes(), f.name, folder: 'meupet/prontuario');
+                        setS(() => file = a);
+                      } catch (e) {
+                        if (c.mounted) showSnack(c, '$e', error: true);
+                      } finally {
+                        setS(() => uploading = false);
+                      }
+                    },
+              icon: uploading
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                  : Icon(file == null ? Icons.attach_file_rounded : Icons.check_circle_rounded, color: file == null ? null : AppColors.green),
+              label: Text(file == null ? 'Anexar arquivo (PDF ou foto)' : file!.name, overflow: TextOverflow.ellipsis),
+            ),
             const SizedBox(height: 16),
             OrangeButton(
               label: 'Salvar',
@@ -648,6 +690,7 @@ Future<void> showRecordForm(BuildContext context, String petId, String type, Str
                   'professional': prof.text.trim(),
                   'crm': crm.text.trim(),
                   'notes': notes.text.trim(),
+                  if (file != null) ...{'fileUrl': file!.url, 'fileName': file!.name, 'fileType': file!.type},
                   'date': Timestamp.fromDate(date),
                   'createdBy': Session.uid,
                   'createdAt': FieldValue.serverTimestamp(),

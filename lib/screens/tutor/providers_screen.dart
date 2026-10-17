@@ -5,12 +5,15 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/catalog.dart';
 import '../../core/db.dart';
 import '../../core/location.dart';
+import '../../core/push.dart';
 import '../../core/models.dart';
 import '../../core/theme.dart';
 import '../../widgets/category_grid.dart';
 import '../../widgets/common.dart';
 import '../../widgets/rating.dart';
 import '../common/chat_screen.dart';
+import '../common/ride_screens.dart';
+import '../common/store_screens.dart';
 
 /// Tela de um grupo (+SAÚDE / +CUIDADO / +PRODUTO) com a grade de categorias.
 class ServiceGroupScreen extends StatelessWidget {
@@ -213,14 +216,20 @@ class ProviderTile extends StatelessWidget {
     return WhiteBlock(
       padding: const EdgeInsets.all(12),
       child: InkWell(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => bookOnTap
-                ? BookingScreen(provider: provider, initialService: category)
-                : ProviderDetailScreen(provider: provider, category: category),
-          ),
-        ),
+        onTap: () {
+          final tutor = Session.current.value?.isProvider != true;
+          final Widget page;
+          if (bookOnTap) {
+            page = BookingScreen(provider: provider, initialService: category);
+          } else if (tutor && category == 'TaxiPet') {
+            page = RideRequestScreen(driver: provider);
+          } else if (tutor && category != null && storeCategoryNames.contains(category)) {
+            page = StoreScreen(store: provider);
+          } else {
+            page = ProviderDetailScreen(provider: provider, category: category);
+          }
+          Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+        },
         child: Row(children: [
           PhotoAvatar(photo: provider.photo, size: 56, fallbackIcon: Icons.storefront_rounded),
           const SizedBox(width: 12),
@@ -322,7 +331,33 @@ class ProviderDetailScreen extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                      if (isTutor) ...[
+                      if (isTutor && isStoreUser(p.categories)) ...[
+                        OrangeButton(
+                          key: const Key('ver_produtos'),
+                          label: 'Ver produtos',
+                          icon: Icons.shopping_bag_rounded,
+                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StoreScreen(store: p))),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      if (isTutor && isTaxiUser(p.categories)) ...[
+                        SizedBox(
+                          height: 52,
+                          child: FilledButton.icon(
+                            key: const Key('chamar_taxi'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: kTaxiYellow,
+                              foregroundColor: const Color(0xFF3E4446),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => RideRequestScreen(driver: p))),
+                            icon: const Icon(Icons.local_taxi_rounded),
+                            label: const Text('Chamar TaxiPet', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      if (isTutor && hasServiceCats(p.categories)) ...[
                         OrangeButton(
                           label: 'Agendar',
                           icon: Icons.event_available_rounded,
@@ -550,6 +585,9 @@ class _BookingScreenState extends State<BookingScreen> {
         'address': _address.text.trim(),
         'createdAt': FieldValue.serverTimestamp(),
       });
+      Push.notify([widget.provider.id], '📅 Novo pedido de agendamento',
+          '${_pet!.name} · $_service · ${fmtDate(_when)} às ${fmtTime(_when)} — ${me.name}',
+          data: const {'type': 'appointment'});
       if (!mounted) return;
       showSnack(context, 'Pedido enviado! Aguarde a confirmação de ${widget.provider.displayName}.');
       Navigator.pop(context);

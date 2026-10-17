@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'models.dart';
+import 'push.dart';
 
 /// Usuário logado (atualizado pelo AuthGate).
 class Session {
@@ -28,6 +29,9 @@ class Db {
   static CollectionReference<Map<String, dynamic>> get prescriptions => fs.collection('prescriptions');
   static CollectionReference<Map<String, dynamic>> get emergencies => fs.collection('emergencies');
   static CollectionReference<Map<String, dynamic>> get reviews => fs.collection('reviews');
+  static CollectionReference<Map<String, dynamic>> get rides => fs.collection('rides');
+  static CollectionReference<Map<String, dynamic>> get orders => fs.collection('orders');
+  static CollectionReference<Map<String, dynamic>> get products => fs.collection('products');
 
   // ---------- Auth ----------
   static Future<void> signIn(String email, String pass) =>
@@ -65,7 +69,10 @@ class Db {
   static Future<void> resetPassword(String email) =>
       FirebaseAuth.instance.sendPasswordResetEmail(email: email.trim());
 
-  static Future<void> signOut() => FirebaseAuth.instance.signOut();
+  static Future<void> signOut() async {
+    await Push.unregister();
+    await FirebaseAuth.instance.signOut();
+  }
 
   // ---------- Users ----------
   static Stream<AppUser> userStream(String id) =>
@@ -127,14 +134,37 @@ class Db {
     return l;
   }
 
-  static Future<void> setAppointmentStatus(String id, String status) =>
-      appointments.doc(id).update({'status': status});
+  static Future<void> setAppointmentStatus(String id, String status) async {
+    await appointments.doc(id).update({'status': status});
+    _notifyAppointment(id, status);
+  }
 
-  static Future<void> reschedule(String id, DateTime dt, {required bool byProvider}) =>
-      appointments.doc(id).update({
-        'dateTime': Timestamp.fromDate(dt),
-        'status': byProvider ? 'confirmado' : 'pendente',
-      });
+  static Future<void> reschedule(String id, DateTime dt, {required bool byProvider}) async {
+    await appointments.doc(id).update({
+      'dateTime': Timestamp.fromDate(dt),
+      'status': byProvider ? 'confirmado' : 'pendente',
+    });
+    _notifyAppointment(id, 'reagendado');
+  }
+
+  static Future<void> _notifyAppointment(String id, String what) async {
+    try {
+      final a = Appointment.fromDoc(await appointments.doc(id).get());
+      final byProvider = Session.uid == a.providerId;
+      final when = '${fmtDate(a.dateTime)} às ${fmtTime(a.dateTime)}';
+      final title = switch (what) {
+        'confirmado' => 'Agendamento confirmado ✅',
+        'recusado' => 'Agendamento recusado',
+        'concluido' => 'Atendimento concluído',
+        'cancelado' => 'Agendamento cancelado',
+        'reagendado' => 'Agendamento reagendado',
+        _ => 'Agendamento atualizado',
+      };
+      final who = byProvider ? a.providerName : a.tutorName;
+      Push.notify([byProvider ? a.tutorId : a.providerId], title, '${a.petName} · ${a.service} · $when — $who',
+          data: {'type': 'appointment', 'id': id});
+    } catch (_) {}
+  }
 
   // ---------- Chats ----------
   static String chatIdFor(String a, String b) {
@@ -152,20 +182,26 @@ class Db {
     return id;
   }
 
-  static Future<void> sendMessage(String chatId, String text) async {
+  static Future<void> sendMessage(String chatId, String text, {Attachment? attachment}) async {
     final me = Session.user;
+    final preview = attachment == null ? text : (text.isEmpty ? attachment.label : '${attachment.label} · $text');
     final batch = fs.batch();
     batch.set(chats.doc(chatId).collection('messages').doc(), {
       'senderId': me.id,
       'text': text,
+      if (attachment != null) 'attachment': attachment.toMap(),
       'createdAt': FieldValue.serverTimestamp(),
     });
     batch.update(chats.doc(chatId), {
-      'lastMessage': text,
+      'lastMessage': preview,
       'lastSender': me.id,
       'updatedAt': FieldValue.serverTimestamp(),
+      'readBy': {me.id: true},
     });
     await batch.commit();
+    final other = chatId.split('_').where((p) => p != me.id).toList();
+    Push.notify(other, me.displayName, preview,
+        data: {'type': 'chat', 'chatId': chatId, 'otherId': me.id, 'otherName': me.displayName});
   }
 
   /// Abre (ou cria) a conversa e manda uma mensagem automática.
@@ -244,6 +280,12 @@ class Db {
       'status': 'aberto',
       'createdAt': FieldValue.serverTimestamp(),
     });
+    try {
+      final clinics = await users.where('categories', arrayContains: 'Emergência 24h').get();
+      Push.notify([for (final d in clinics.docs) d.id], '🚨 SOS: ${pet.name} (${pet.species})',
+          '${description.trim().isEmpty ? 'Emergência' : description.trim()} — ${me.name}${me.city.isEmpty ? '' : ', ${me.city}'}',
+          data: {'type': 'emergency', 'id': ref.id, 'channel': 'sos'});
+    } catch (_) {}
     return ref.id;
   }
 
@@ -262,6 +304,13 @@ class Db {
         'acceptedAt': FieldValue.serverTimestamp(),
       });
       return true;
+    }).then((ok) async {
+      if (ok) {
+        final e = Emergency.fromDoc(await ref.get());
+        Push.notify([e.tutorId], '${me.displayName} aceitou seu SOS', 'Abra o app para falar com a clínica sobre ${e.petName}.',
+            data: {'type': 'emergency', 'id': id, 'channel': 'sos'});
+      }
+      return ok;
     });
   }
 
@@ -302,6 +351,142 @@ class Db {
       'stars': stars,
       'text': text.trim(),
       'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // ---------- TaxiPet ----------
+  static List<Ride> _sortRides(List<Ride> l) =>
+      l..sort((a, b) => (a.when ?? DateTime(2100)).compareTo(b.when ?? DateTime(2100)));
+
+  static Stream<List<Ride>> tutorRides(String uid) =>
+      rides.where('tutorId', isEqualTo: uid).snapshots().map((s) => _sortRides(s.docs.map(Ride.fromDoc).toList()));
+
+  static Stream<List<Ride>> driverRides(String uid) =>
+      rides.where('driverId', isEqualTo: uid).snapshots().map((s) => _sortRides(s.docs.map(Ride.fromDoc).toList()));
+
+  static Stream<Ride> rideStream(String id) => rides.doc(id).snapshots().map(Ride.fromDoc);
+
+  static Future<String> requestRide({
+    required Pet pet,
+    required AppUser driver,
+    required String pickup,
+    required String destination,
+    required DateTime when,
+    String notes = '',
+  }) async {
+    final me = Session.user;
+    final ref = await rides.add({
+      'tutorId': me.id,
+      'tutorName': me.name,
+      'tutorPhone': me.phone,
+      'petId': pet.id,
+      'petName': pet.name,
+      'petSpecies': pet.species,
+      'petPhoto': pet.photo,
+      'driverId': driver.id,
+      'driverName': driver.displayName,
+      'driverPhone': driver.phone,
+      'pickup': pickup.trim(),
+      'destination': destination.trim(),
+      'when': Timestamp.fromDate(when),
+      'notes': notes.trim(),
+      'status': 'pedida',
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    Push.notify([driver.id], '🚕 Nova corrida: ${pet.name}', '${fmtDate(when)} às ${fmtTime(when)} · buscar em ${pickup.trim()}',
+        data: {'type': 'ride', 'id': ref.id});
+    return ref.id;
+  }
+
+  static Future<void> setRideStatus(Ride r, String status, {DateTime? when}) async {
+    await rides.doc(r.id).update({
+      'status': status,
+      if (when != null) 'when': Timestamp.fromDate(when),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+    final byDriver = Session.uid == r.driverId;
+    final label = when != null ? 'Corrida reagendada para ${fmtDate(when)} às ${fmtTime(when)}' : (rideStatusLabel[status] ?? status);
+    Push.notify([byDriver ? r.tutorId : r.driverId], byDriver ? '🚕 ${r.driverName}' : '🚕 ${r.tutorName}', '$label · ${r.petName}',
+        data: {'type': 'ride', 'id': r.id});
+  }
+
+  // ---------- Loja ----------
+  static Stream<List<Product>> storeProducts(String storeId) => products
+      .where('storeId', isEqualTo: storeId)
+      .snapshots()
+      .map((s) => s.docs.map(Product.fromDoc).toList()..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())));
+
+  static Future<void> saveProduct(Product p) =>
+      p.id.isEmpty ? products.add({...p.toMap(), 'createdAt': FieldValue.serverTimestamp()}) : products.doc(p.id).update(p.toMap());
+
+  static Future<void> deleteProduct(String id) => products.doc(id).delete();
+
+  static List<StoreOrder> _sortOrders(List<StoreOrder> l) =>
+      l..sort((a, b) => (b.createdAt ?? DateTime(2100)).compareTo(a.createdAt ?? DateTime(2100)));
+
+  static Stream<List<StoreOrder>> tutorOrders(String uid) =>
+      orders.where('tutorId', isEqualTo: uid).snapshots().map((s) => _sortOrders(s.docs.map(StoreOrder.fromDoc).toList()));
+
+  static Stream<List<StoreOrder>> storeOrders(String uid) =>
+      orders.where('storeId', isEqualTo: uid).snapshots().map((s) => _sortOrders(s.docs.map(StoreOrder.fromDoc).toList()));
+
+  static Stream<StoreOrder> orderStream(String id) => orders.doc(id).snapshots().map(StoreOrder.fromDoc);
+
+  static Future<String> placeOrder({
+    required AppUser store,
+    required List<OrderItem> items,
+    required String pickupName,
+    DateTime? pickupDate,
+    String notes = '',
+  }) async {
+    final me = Session.user;
+    final total = items.fold<double>(0, (a, i) => a + i.total);
+    final ref = await orders.add({
+      'storeId': store.id,
+      'storeName': store.displayName,
+      'tutorId': me.id,
+      'tutorName': me.name,
+      'tutorPhone': me.phone,
+      'tutorPhoto': me.photo,
+      'items': [for (final i in items) i.toMap()],
+      'total': total,
+      'pickupName': pickupName.trim(),
+      'pickupDate': pickupDate == null ? null : Timestamp.fromDate(pickupDate),
+      'notes': notes.trim(),
+      'nfe': '',
+      'status': 'novo',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    Push.notify([store.id], '🛒 Novo pedido de ${me.name}', '${items.length} item(ns) · ${fmtMoney(total)} · retirada: ${pickupName.trim()}',
+        data: {'type': 'order', 'id': ref.id});
+    return ref.id;
+  }
+
+  static Future<void> updateOrder(StoreOrder o, Map<String, dynamic> changes) async {
+    await orders.doc(o.id).update(changes);
+    final status = changes['status'] as String?;
+    final byStore = Session.uid == o.storeId;
+    String? body;
+    if (status != null) body = orderStatusLabel[status];
+    if (changes['pickupDate'] is Timestamp) body = 'Retirada marcada para ${fmtDate((changes['pickupDate'] as Timestamp).toDate())}';
+    if (body == null) return;
+    Push.notify([byStore ? o.tutorId : o.storeId], byStore ? '🛒 ${o.storeName}' : '🛒 ${o.tutorName}', '$body · pedido de ${fmtMoney(o.total)}',
+        data: {'type': 'order', 'id': o.id});
+  }
+
+  // ---------- Avaliação do PET (comportamento) ----------
+  static Stream<List<PetNote>> petNotes(String petId) => petSub(petId, 'behavior').snapshots().map((s) =>
+      s.docs.map(PetNote.fromDoc).toList()..sort((a, b) => (b.date ?? DateTime(1900)).compareTo(a.date ?? DateTime(1900))));
+
+  static Future<void> addPetNote(String petId, int stars, String text) {
+    final me = Session.user;
+    return petSub(petId, 'behavior').add({
+      'providerId': me.id,
+      'providerName': me.displayName,
+      'stars': stars,
+      'text': text.trim(),
+      'createdAt': FieldValue.serverTimestamp(),
     });
   }
 }

@@ -543,3 +543,283 @@ class RatingInfo {
   const RatingInfo(this.avg, this.count);
   String get label => avg.toStringAsFixed(1).replaceAll('.', ',');
 }
+
+// ======================= Fase 3 =======================
+
+/// Corrida do TaxiPet.
+class Ride {
+  final String id;
+  final String tutorId;
+  final String tutorName;
+  final String tutorPhone;
+  final String petId;
+  final String petName;
+  final String petSpecies;
+  final String? petPhoto;
+  final String driverId;
+  final String driverName;
+  final String driverPhone;
+  final String pickup;
+  final String destination;
+  final DateTime? when;
+  final String notes;
+  final String status;
+  final DateTime? updatedAt;
+
+  const Ride({
+    required this.id,
+    required this.tutorId,
+    required this.tutorName,
+    this.tutorPhone = '',
+    required this.petId,
+    required this.petName,
+    this.petSpecies = '',
+    this.petPhoto,
+    required this.driverId,
+    required this.driverName,
+    this.driverPhone = '',
+    required this.pickup,
+    required this.destination,
+    this.when,
+    this.notes = '',
+    required this.status,
+    this.updatedAt,
+  });
+
+  static const flow = ['pedida', 'aceita', 'a_caminho', 'pet_a_bordo', 'chegou', 'concluida'];
+  bool get isActive => !const ['concluida', 'recusada', 'cancelada'].contains(status);
+  int get step => flow.indexOf(status);
+
+  /// Próximo passo do motorista (null quando não há).
+  String? get nextStatus {
+    final i = step;
+    if (i < 1 || i >= flow.length - 1) return null;
+    return flow[i + 1];
+  }
+
+  factory Ride.fromDoc(DocumentSnapshot d) {
+    final m = (d.data() as Map<String, dynamic>?) ?? {};
+    return Ride(
+      id: d.id,
+      tutorId: m['tutorId'] ?? '',
+      tutorName: m['tutorName'] ?? '',
+      tutorPhone: m['tutorPhone'] ?? '',
+      petId: m['petId'] ?? '',
+      petName: m['petName'] ?? '',
+      petSpecies: m['petSpecies'] ?? '',
+      petPhoto: m['petPhoto'],
+      driverId: m['driverId'] ?? '',
+      driverName: m['driverName'] ?? '',
+      driverPhone: m['driverPhone'] ?? '',
+      pickup: m['pickup'] ?? '',
+      destination: m['destination'] ?? '',
+      when: tsToDate(m['when']),
+      notes: m['notes'] ?? '',
+      status: m['status'] ?? 'pedida',
+      updatedAt: tsToDate(m['updatedAt']),
+    );
+  }
+}
+
+const rideStatusLabel = {
+  'pedida': 'Aguardando o motorista',
+  'aceita': 'Corrida confirmada',
+  'a_caminho': 'Motorista a caminho',
+  'pet_a_bordo': 'Pet a bordo',
+  'chegou': 'Chegou ao destino',
+  'concluida': 'Corrida concluída',
+  'recusada': 'Recusada pelo motorista',
+  'cancelada': 'Cancelada',
+};
+
+/// Texto do botão do motorista para avançar a corrida.
+const rideActionLabel = {
+  'a_caminho': 'Saí para buscar',
+  'pet_a_bordo': 'Pet a bordo',
+  'chegou': 'Chegou ao destino',
+  'concluida': 'Concluir corrida',
+};
+
+/// Produto da loja.
+class Product {
+  final String id;
+  final String storeId;
+  final String name;
+  final double price;
+  final String category;
+  final String photoUrl;
+  final String description;
+  final bool available;
+
+  const Product({
+    this.id = '',
+    required this.storeId,
+    required this.name,
+    required this.price,
+    this.category = '',
+    this.photoUrl = '',
+    this.description = '',
+    this.available = true,
+  });
+
+  factory Product.fromDoc(DocumentSnapshot d) {
+    final m = (d.data() as Map<String, dynamic>?) ?? {};
+    return Product(
+      id: d.id,
+      storeId: m['storeId'] ?? '',
+      name: m['name'] ?? '',
+      price: ((m['price'] as num?) ?? 0).toDouble(),
+      category: m['category'] ?? '',
+      photoUrl: m['photoUrl'] ?? '',
+      description: m['description'] ?? '',
+      available: m['available'] ?? true,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'storeId': storeId,
+        'name': name,
+        'price': price,
+        'category': category,
+        'photoUrl': photoUrl,
+        'description': description,
+        'available': available,
+      };
+}
+
+class OrderItem {
+  final String productId;
+  final String name;
+  final double price;
+  final int qty;
+  const OrderItem({required this.productId, required this.name, required this.price, required this.qty});
+  double get total => price * qty;
+  factory OrderItem.fromMap(Map m) => OrderItem(
+        productId: m['productId'] ?? '',
+        name: m['name'] ?? '',
+        price: ((m['price'] as num?) ?? 0).toDouble(),
+        qty: ((m['qty'] as num?) ?? 1).toInt(),
+      );
+  Map<String, dynamic> toMap() => {'productId': productId, 'name': name, 'price': price, 'qty': qty};
+}
+
+/// Pedido feito na loja (retirada no local, pagamento na loja).
+class StoreOrder {
+  final String id;
+  final String storeId;
+  final String storeName;
+  final String tutorId;
+  final String tutorName;
+  final String tutorPhone;
+  final String? tutorPhoto;
+  final List<OrderItem> items;
+  final double total;
+  final String pickupName;
+  final DateTime? pickupDate;
+  final String notes;
+  final String nfe;
+  final String status;
+  final DateTime? createdAt;
+
+  const StoreOrder({
+    required this.id,
+    required this.storeId,
+    required this.storeName,
+    required this.tutorId,
+    required this.tutorName,
+    this.tutorPhone = '',
+    this.tutorPhoto,
+    required this.items,
+    required this.total,
+    this.pickupName = '',
+    this.pickupDate,
+    this.notes = '',
+    this.nfe = '',
+    required this.status,
+    this.createdAt,
+  });
+
+  bool get isActive => !const ['retirado', 'recusado', 'cancelado'].contains(status);
+  int get count => items.fold(0, (a, i) => a + i.qty);
+
+  factory StoreOrder.fromDoc(DocumentSnapshot d) {
+    final m = (d.data() as Map<String, dynamic>?) ?? {};
+    return StoreOrder(
+      id: d.id,
+      storeId: m['storeId'] ?? '',
+      storeName: m['storeName'] ?? '',
+      tutorId: m['tutorId'] ?? '',
+      tutorName: m['tutorName'] ?? '',
+      tutorPhone: m['tutorPhone'] ?? '',
+      tutorPhoto: m['tutorPhoto'],
+      items: [for (final i in (m['items'] as List?) ?? const []) OrderItem.fromMap(i as Map)],
+      total: ((m['total'] as num?) ?? 0).toDouble(),
+      pickupName: m['pickupName'] ?? '',
+      pickupDate: tsToDate(m['pickupDate']),
+      notes: m['notes'] ?? '',
+      nfe: m['nfe'] ?? '',
+      status: m['status'] ?? 'novo',
+      createdAt: tsToDate(m['createdAt']),
+    );
+  }
+}
+
+const orderStatusLabel = {
+  'novo': 'Aguardando a loja',
+  'confirmado': 'Confirmado — separando',
+  'pronto': 'Pronto para retirada',
+  'retirado': 'Retirado',
+  'recusado': 'Recusado pela loja',
+  'cancelado': 'Cancelado',
+};
+
+/// "Avaliação do PET": como o pet se comporta, segundo os prestadores.
+class PetNote {
+  final String id;
+  final String providerId;
+  final String providerName;
+  final int stars;
+  final String text;
+  final DateTime? date;
+  const PetNote({
+    required this.id,
+    required this.providerId,
+    required this.providerName,
+    required this.stars,
+    this.text = '',
+    this.date,
+  });
+  factory PetNote.fromDoc(DocumentSnapshot d) {
+    final m = (d.data() as Map<String, dynamic>?) ?? {};
+    return PetNote(
+      id: d.id,
+      providerId: m['providerId'] ?? '',
+      providerName: m['providerName'] ?? '',
+      stars: ((m['stars'] as num?) ?? 0).toInt(),
+      text: m['text'] ?? '',
+      date: tsToDate(m['createdAt']),
+    );
+  }
+}
+
+/// Anexo de mensagem do chat (arquivo no Cloudinary).
+class Attachment {
+  final String url;
+  final String type; // image | pdf | audio | file
+  final String name;
+  final int seconds; // duração do áudio
+  const Attachment({required this.url, required this.type, this.name = '', this.seconds = 0});
+  factory Attachment.fromMap(Map m) => Attachment(
+        url: m['url'] ?? '',
+        type: m['type'] ?? 'file',
+        name: m['name'] ?? '',
+        seconds: ((m['seconds'] as num?) ?? 0).toInt(),
+      );
+  Map<String, dynamic> toMap() => {'url': url, 'type': type, 'name': name, 'seconds': seconds};
+  String get label => switch (type) {
+        'image' => '📷 Foto',
+        'pdf' => '📄 ${name.isEmpty ? 'PDF' : name}',
+        'audio' => '🎤 Áudio',
+        _ => '📎 ${name.isEmpty ? 'Arquivo' : name}',
+      };
+}

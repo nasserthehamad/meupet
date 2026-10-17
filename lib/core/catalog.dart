@@ -164,3 +164,16 @@ const animalCategories = <AnimalCat>[
 
 /// Prestador sem "Animais atendidos" marcados atende todos.
 bool servesSpecies(List<String> animals, String species) => animals.isEmpty || animals.contains(species);
+
+/// Categorias de quem vende produtos (loja / farmácia).
+Set<String> get storeCategoryNames => {
+      for (final g in serviceGroups)
+        if (g.key == 'produtos') ...g.providerCategories.map((c) => c.name),
+      'Farmácia',
+    };
+
+bool isStoreUser(List<String> cats) => cats.any(storeCategoryNames.contains);
+bool isTaxiUser(List<String> cats) => cats.contains('TaxiPet');
+
+/// Presta algum serviço com agendamento (vet, banho, hotel…).
+bool hasServiceCats(List<String> cats) => cats.any((c) => c != 'TaxiPet' && !storeCategoryNames.contains(c));

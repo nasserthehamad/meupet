@@ -86,6 +86,43 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.tutorId == me();
     }
 
+    // TaxiPet: o tutor pede; o motorista escolhido aceita e atualiza as etapas.
+    match /rides/{id} {
+      allow read: if signedIn() && (resource.data.tutorId == me() || resource.data.driverId == me());
+      allow create: if signedIn() && request.resource.data.tutorId == me()
+        && request.resource.data.status == 'pedida';
+      allow update: if signedIn() && (
+        resource.data.driverId == me()
+        || (resource.data.tutorId == me()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'when', 'updatedAt'])
+          && (request.resource.data.status == resource.data.status
+            || (resource.data.status in ['pedida', 'aceita'] && request.resource.data.status == 'cancelada')))
+      );
+      allow delete: if false;
+    }
+
+    // Loja: vitrine para logados; só a loja mexe nos seus produtos.
+    match /products/{id} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.storeId == me();
+      allow update, delete: if signedIn() && resource.data.storeId == me();
+    }
+
+    // Pedidos: tutor cria e pode cancelar enquanto novo; a loja atualiza.
+    match /orders/{id} {
+      allow read: if signedIn() && (resource.data.tutorId == me() || resource.data.storeId == me());
+      allow create: if signedIn() && request.resource.data.tutorId == me()
+        && request.resource.data.status == 'novo';
+      allow update: if signedIn() && (
+        resource.data.storeId == me()
+        || (resource.data.tutorId == me()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'pickupDate'])
+          && (request.resource.data.status == resource.data.status
+            || (resource.data.status == 'novo' && request.resource.data.status == 'cancelado')))
+      );
+      allow delete: if false;
+    }
+
     // Chat: só participantes.
     match /chats/{chatId} {
       allow read: if signedIn() && (resource == null || me() in resource.data.participants);

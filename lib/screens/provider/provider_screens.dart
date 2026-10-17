@@ -7,6 +7,10 @@ import '../../core/theme.dart';
 import '../../widgets/common.dart';
 import '../common/chat_screen.dart';
 import '../common/emergency_screen.dart';
+import '../common/pet_info_sheet.dart';
+import '../common/prescription_screens.dart' show canPrescribe;
+import '../common/ride_screens.dart';
+import '../common/store_screens.dart';
 import '../tutor/pet_detail_screen.dart';
 
 String providerGroupWord() {
@@ -40,9 +44,235 @@ class _ProviderHomeState extends State<ProviderHome> {
     return a.petName.toLowerCase().contains(q) || a.tutorName.toLowerCase().contains(q) || a.service.toLowerCase().contains(q);
   }
 
+  String? _mode;
+
+  static const _modeLabel = {'servicos': 'Atendimentos', 'corridas': 'Corridas', 'pedidos': 'Pedidos'};
+  static const _modeIcon = {
+    'servicos': Icons.event_available_rounded,
+    'corridas': Icons.local_taxi_rounded,
+    'pedidos': Icons.shopping_bag_rounded,
+  };
+
   @override
   Widget build(BuildContext context) {
     final u = Session.current.value;
+    final cats = u?.categories ?? const <String>[];
+    final modes = <String>[
+      if (hasServiceCats(cats) || (!isTaxiUser(cats) && !isStoreUser(cats))) 'servicos',
+      if (isTaxiUser(cats)) 'corridas',
+      if (isStoreUser(cats)) 'pedidos',
+    ];
+    // O primeiro serviço cadastrado define a tela inicial (ex.: Pet Taxi abre nas corridas).
+    if (cats.isNotEmpty) {
+      final first = cats.first == 'TaxiPet' ? 'corridas' : (storeCategoryNames.contains(cats.first) ? 'pedidos' : 'servicos');
+      if (modes.remove(first)) modes.insert(0, first);
+    }
+    final mode = modes.contains(_mode) ? _mode! : modes.first;
+    switch (mode) {
+      case 'corridas':
+        return _ridesView(u, modes, mode);
+      case 'pedidos':
+        return _ordersView(u, modes, mode);
+      default:
+        return _servicesView(u, modes, mode);
+    }
+  }
+
+  Widget _modeChips(List<String> modes, String mode) {
+    if (modes.length < 2) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Wrap(spacing: 8, children: [
+        for (final m in modes)
+          ChoiceChip(
+            key: Key('modo_$m'),
+            avatar: Icon(_modeIcon[m], size: 18, color: m == mode ? Colors.white : AppColors.teal),
+            label: Text(_modeLabel[m]!),
+            selected: m == mode,
+            selectedColor: AppColors.teal,
+            showCheckmark: false,
+            labelStyle: TextStyle(color: m == mode ? Colors.white : AppColors.text, fontWeight: FontWeight.w600),
+            onSelected: (_) => setState(() {
+              _mode = m;
+              _page = 0;
+            }),
+          ),
+      ]),
+    );
+  }
+
+  Widget _searchRow(DateTime now) => Row(children: [
+        Expanded(
+          flex: 3,
+          child: TextField(
+            onChanged: (v) => setState(() {
+              _q = v.trim();
+              _page = 0;
+            }),
+            decoration: _pill('Digite sua busca', Icons.search_rounded),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          flex: 2,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () async {
+              if (_date != null) {
+                setState(() => _date = null);
+                return;
+              }
+              final d = await pickDate(context, initial: now);
+              if (d != null) setState(() => _date = d);
+            },
+            child: InputDecorator(
+              isEmpty: true,
+              decoration: _pill(_date == null ? 'Data' : fmtShort(_date), _date == null ? Icons.event_rounded : Icons.close_rounded),
+              child: const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ]);
+
+  bool _onDate(DateTime? d) => _date == null || (d != null && _sameDay(d, _date!));
+
+  // ------------------------------------------------------------ TaxiPet
+  Widget _ridesView(AppUser? u, List<String> modes, String mode) {
+    final now = DateTime.now();
+    return StreamBuilder<List<Ride>>(
+      stream: Db.driverRides(Session.uid),
+      builder: (context, snap) {
+        final q = _q.toLowerCase();
+        final all = (snap.data ?? [])
+            .where((r) => q.isEmpty || r.petName.toLowerCase().contains(q) || r.tutorName.toLowerCase().contains(q))
+            .toList();
+        final requests = all.where((r) => r.status == 'pedida').toList();
+        final active = all.where((r) => r.isActive && r.status != 'pedida' && _onDate(r.when)).toList();
+        return ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            _ProviderHeader(user: u, pending: requests.length, onNewRides: null),
+            SnakeBand(
+              index: 1,
+              padding: const EdgeInsets.fromLTRB(14, 16, 12, 18),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                _modeChips(modes, mode),
+                _searchRow(now),
+                const SizedBox(height: 14),
+                Row(children: [
+                  Text('Atendimentos', style: sectionStyle().copyWith(fontSize: 20)),
+                  const SizedBox(width: 8),
+                  Text('+CUIDADO', style: scriptStyle(26, const Color(0xFFCFD3D4))),
+                ]),
+                if (!snap.hasData)
+                  const Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator()))
+                else if (active.isEmpty)
+                  const EmptyState(icon: Icons.local_taxi_rounded, text: 'Nenhuma corrida confirmada.
+Novos pedidos aparecem em "Aceitar Agendamentos".')
+                else
+                  for (final r in active) RideTile(r: r, driverView: true),
+              ]),
+            ),
+            SnakeBand(
+              index: 2,
+              roundBottom: false,
+              padding: const EdgeInsets.fromLTRB(14, 10, 8, 40),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Row(children: [
+                  Expanded(child: Text('Aceitar Agendamentos', style: sectionStyle().copyWith(fontSize: 20))),
+                  if (requests.isNotEmpty) Image.asset('assets/images/alerta.gif', width: 30, height: 30),
+                ]),
+                const SizedBox(height: 6),
+                if (snap.hasData && requests.isEmpty)
+                  const EmptyState(icon: Icons.inbox_rounded, text: 'Nenhum pedido de corrida agora.')
+                else
+                  for (final r in requests) _RideRequestTile(r: r),
+              ]),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ------------------------------------------------------------ Loja
+  Widget _ordersView(AppUser? u, List<String> modes, String mode) {
+    final now = DateTime.now();
+    return StreamBuilder<List<StoreOrder>>(
+      stream: Db.storeOrders(Session.uid),
+      builder: (context, snap) {
+        final q = _q.toLowerCase();
+        final all = (snap.data ?? [])
+            .where((o) => q.isEmpty || o.tutorName.toLowerCase().contains(q) || o.nfe.toLowerCase().contains(q) || o.pickupName.toLowerCase().contains(q))
+            .toList();
+        final novos = all.where((o) => o.status == 'novo').toList();
+        final ativos = all.where((o) => (o.status == 'confirmado' || o.status == 'pronto') && _onDate(o.pickupDate ?? o.createdAt)).toList()
+          ..sort((a, b) => (a.pickupDate ?? a.createdAt ?? DateTime(2100)).compareTo(b.pickupDate ?? b.createdAt ?? DateTime(2100)));
+        return ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            _ProviderHeader(user: u, pending: novos.length),
+            SnakeBand(
+              index: 1,
+              padding: const EdgeInsets.fromLTRB(14, 16, 12, 18),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                _modeChips(modes, mode),
+                _searchRow(now),
+                const SizedBox(height: 14),
+                Row(children: [
+                  Text('Atendimentos', style: sectionStyle().copyWith(fontSize: 20)),
+                  const SizedBox(width: 8),
+                  Text('+PRODUTO', style: scriptStyle(26, const Color(0xFFCFD3D4))),
+                ]),
+                if (!snap.hasData)
+                  const Padding(padding: EdgeInsets.all(30), child: Center(child: CircularProgressIndicator()))
+                else if (ativos.isEmpty)
+                  const EmptyState(icon: Icons.shopping_bag_rounded, text: 'Nenhum pedido para separar.
+Novos pedidos aparecem em "Pedidos Recebidos".')
+                else
+                  for (final o in ativos)
+                    OrderTile(o: o, storeView: true, actions: [
+                      _ImgActionIcon(
+                        icon: Icons.push_pin_rounded,
+                        color: AppColors.red,
+                        label: o.status == 'pronto' ? 'Pronto' : 'Local',
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderScreen(orderId: o.id))),
+                      ),
+                      _ImgAction(asset: 'assets/ui/reagendar.png', label: 'Reagendar', onTap: () => rescheduleOrder(context, o)),
+                    ]),
+              ]),
+            ),
+            SnakeBand(
+              index: 2,
+              roundBottom: false,
+              padding: const EdgeInsets.fromLTRB(14, 10, 8, 40),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Row(children: [
+                  Expanded(child: Text('Pedidos Recebidos', style: sectionStyle().copyWith(fontSize: 20))),
+                  if (novos.isNotEmpty) Image.asset('assets/images/alerta.gif', width: 30, height: 30),
+                ]),
+                const SizedBox(height: 6),
+                if (snap.hasData && novos.isEmpty)
+                  const EmptyState(icon: Icons.inbox_rounded, text: 'Nenhum pedido novo.')
+                else
+                  for (final o in novos)
+                    OrderTile(o: o, storeView: true, actions: [
+                      _ConfirmAction(onTap: () async {
+                        await Db.updateOrder(o, {'status': 'confirmado'});
+                        if (context.mounted) showSnack(context, 'Pedido de ${o.tutorName} confirmado!');
+                      }),
+                      _ImgAction(asset: 'assets/ui/reagendar.png', label: 'Reagendar', onTap: () => rescheduleOrder(context, o)),
+                    ]),
+              ]),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ------------------------------------------------------------ Serviços
+  Widget _servicesView(AppUser? u, List<String> modes, String mode) {
     return StreamBuilder<List<Appointment>>(
       stream: Db.providerAppointments(Session.uid),
       builder: (context, snap) {
@@ -65,11 +295,16 @@ class _ProviderHomeState extends State<ProviderHome> {
         return ListView(
           padding: EdgeInsets.zero,
           children: [
-            _ProviderHeader(user: u, pending: pending.length),
+            _ProviderHeader(
+              user: u,
+              pending: pending.length,
+              onNewRides: modes.contains('corridas') ? () => setState(() => _mode = 'corridas') : null,
+            ),
             SnakeBand(
               index: 1,
               padding: const EdgeInsets.fromLTRB(14, 16, 12, 18),
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                _modeChips(modes, mode),
                 Row(children: [
                   Expanded(
                     flex: 3,
@@ -188,7 +423,8 @@ class _ProviderHomeState extends State<ProviderHome> {
 class _ProviderHeader extends StatelessWidget {
   final AppUser? user;
   final int pending;
-  const _ProviderHeader({required this.user, required this.pending});
+  final VoidCallback? onNewRides;
+  const _ProviderHeader({required this.user, required this.pending, this.onNewRides});
 
   @override
   Widget build(BuildContext context) {
@@ -216,14 +452,19 @@ class _ProviderHeader extends StatelessWidget {
               ),
             ]),
             Expanded(
-              child: Center(
-                child: PhotoAvatar(photo: user?.photo, size: 104, fallbackIcon: Icons.storefront_rounded, border: Colors.white),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                if (isTaxiUser(user?.categories ?? const [])) ...[
+                  _NewRideBadge(onTap: onNewRides),
+                  const SizedBox(width: 6),
+                ],
+                PhotoAvatar(photo: user?.photo, size: 104, fallbackIcon: Icons.storefront_rounded, border: Colors.white),
+              ]),
+            ),
+            if (hasEmergency24h(user))
+              StreamBuilder<List<Emergency>>(
+                stream: Db.openEmergencies(),
+                builder: (context, snap) => _EmergencyCard(count: snap.data?.length ?? 0),
               ),
-            ),
-            StreamBuilder<List<Emergency>>(
-              stream: Db.openEmergencies(),
-              builder: (context, snap) => _EmergencyCard(count: snap.data?.length ?? 0),
-            ),
           ]),
         ]),
       ),
@@ -272,6 +513,134 @@ class _EmergencyCard extends StatelessWidget {
           ),
         ]),
       ),
+    );
+  }
+}
+
+/// "Nova Corrida" do protótipo do Pet Taxi (carrinho com contador).
+class _NewRideBadge extends StatelessWidget {
+  final VoidCallback? onTap;
+  const _NewRideBadge({this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<Ride>>(
+      stream: Db.driverRides(Session.uid),
+      builder: (context, snap) {
+        final n = (snap.data ?? []).where((r) => r.status == 'pedida').length;
+        return InkWell(
+          key: const Key('nova_corrida'),
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Stack(clipBehavior: Clip.none, children: [
+                const Icon(Icons.local_taxi_rounded, color: AppColors.teal, size: 40),
+                if (n > 0)
+                  Positioned(
+                    right: -6,
+                    top: -6,
+                    child: CircleAvatar(
+                      radius: 10,
+                      backgroundColor: const Color(0xFF3E4446),
+                      child: Text('$n', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+              ]),
+              const Text('Nova Corrida', style: TextStyle(fontSize: 10, color: AppColors.muted)),
+            ]),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ConfirmAction extends StatelessWidget {
+  final VoidCallback onTap;
+  const _ConfirmAction({required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: onTap,
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 3, vertical: 4),
+        child: Column(children: [
+          CircleAvatar(radius: 15, backgroundColor: Color(0xFF5E7A1C), child: Icon(Icons.check_rounded, color: Colors.white, size: 20)),
+          SizedBox(height: 2),
+          Text('Confirmar', style: TextStyle(fontSize: 9, color: AppColors.muted)),
+        ]),
+      ),
+    );
+  }
+}
+
+class _ImgActionIcon extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+  final VoidCallback onTap;
+  const _ImgActionIcon({required this.icon, required this.color, required this.label, required this.onTap});
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, color: color, size: 30),
+          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(fontSize: 9, color: AppColors.muted)),
+        ]),
+      ),
+    );
+  }
+}
+
+/// Pedido de corrida (Confirmar / Reagendar).
+class _RideRequestTile extends StatelessWidget {
+  final Ride r;
+  const _RideRequestTile({required this.r});
+  @override
+  Widget build(BuildContext context) {
+    const st = TextStyle(fontSize: 12, color: Color(0xFF6B7477), height: 1.25);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(children: [
+        DateBadge(r.when, big: true),
+        const SizedBox(width: 6),
+        PhotoAvatar(photo: r.petPhoto, size: 44, border: Colors.white),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(fmtTime(r.when), style: st.copyWith(fontWeight: FontWeight.w600, color: AppColors.text)),
+            Text('Nome: ${r.petName}', style: st, maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text('Animal: ${r.petSpecies}', style: st, maxLines: 1, overflow: TextOverflow.ellipsis),
+            Row(children: [
+              const Icon(Icons.local_taxi_rounded, size: 14, color: AppColors.orange),
+              const SizedBox(width: 3),
+              Expanded(
+                child: Text(r.pickup, maxLines: 1, overflow: TextOverflow.ellipsis, style: st.copyWith(color: AppColors.orange, fontSize: 11)),
+              ),
+            ]),
+          ]),
+        ),
+        _ConfirmAction(onTap: () async {
+          await Db.setRideStatus(r, 'aceita');
+          if (context.mounted) showSnack(context, 'Corrida de ${r.petName} confirmada!');
+        }),
+        _ImgAction(asset: 'assets/ui/reagendar.png', label: 'Reagendar', onTap: () => rescheduleRide(context, r)),
+        InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => RideScreen(rideId: r.id))),
+          borderRadius: BorderRadius.circular(16),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: Icon(Icons.chevron_right_rounded, color: AppColors.muted, size: 22),
+          ),
+        ),
+      ]),
     );
   }
 }
@@ -386,7 +755,14 @@ class _AtendimentoTile extends StatelessWidget {
           PhotoAvatar(photo: a.petPhoto, size: 46, border: Colors.white),
           const SizedBox(width: 8),
           Expanded(child: _ApptText(a: a)),
-          _ImgAction(asset: 'assets/ui/clipboard.png', label: 'Prontuário', onTap: () => _prontuario(context, a)),
+          if (canPrescribe(Session.current.value))
+            _ImgAction(asset: 'assets/ui/clipboard.png', label: 'Prontuário', onTap: () => _prontuario(context, a))
+          else
+            InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: () => showPetInfoSheet(context, petId: a.petId, petName: a.petName, petPhoto: a.petPhoto, obs: a.notes),
+              child: const InfoAction(),
+            ),
           _ImgAction(asset: 'assets/ui/reagendar.png', label: 'Reagendar', onTap: () => _reschedule(context, a)),
         ]),
       ),

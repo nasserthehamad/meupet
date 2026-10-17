@@ -6,10 +6,16 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/db.dart';
 import 'core/models.dart';
+import 'core/push.dart';
 import 'core/theme.dart';
 import 'firebase_options.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/common/chat_screen.dart';
+import 'screens/common/emergency_screen.dart';
+import 'screens/common/ride_screens.dart';
+import 'screens/common/store_screens.dart';
 import 'screens/provider/provider_shell.dart';
+import 'screens/tutor/agenda_screen.dart';
 import 'screens/tutor/tutor_shell.dart';
 
 Future<void> main() async {
@@ -17,7 +23,29 @@ Future<void> main() async {
   // O app é sempre em retrato (como o protótipo), inclusive no BlueStacks.
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  Push.onOpen = _openFromPush;
   runApp(const MeuPetApp());
+}
+
+/// Toque numa notificação: abre a conversa, corrida, pedido ou SOS.
+void _openFromPush(Map<String, dynamic> d) {
+  final nav = Push.navigatorKey.currentState;
+  if (nav == null) return;
+  final id = (d['id'] ?? '').toString();
+  Widget? page;
+  switch (d['type']) {
+    case 'chat':
+      page = ChatScreen(chatId: d['chatId'] ?? '', otherName: d['otherName'] ?? '', otherId: d['otherId']);
+    case 'ride':
+      if (id.isNotEmpty) page = RideScreen(rideId: id);
+    case 'order':
+      if (id.isNotEmpty) page = OrderScreen(orderId: id);
+    case 'emergency':
+      page = const EmergencyScreen();
+    case 'appointment':
+      if (Session.current.value?.isProvider != true) page = const AgendaScreen();
+  }
+  if (page != null) nav.push(MaterialPageRoute(builder: (_) => page!));
 }
 
 class MeuPetApp extends StatelessWidget {
@@ -28,6 +56,8 @@ class MeuPetApp extends StatelessWidget {
     return MaterialApp(
       title: 'Meu Pet+',
       debugShowCheckedModeBanner: false,
+      navigatorKey: Push.navigatorKey,
+      scaffoldMessengerKey: Push.messengerKey,
       theme: buildTheme(),
       locale: const Locale('pt', 'BR'),
       supportedLocales: const [Locale('pt', 'BR')],
@@ -63,6 +93,7 @@ class AuthGate extends StatelessWidget {
             // O documento pode ainda não existir logo após o cadastro.
             if (u.email.isEmpty && u.name.isEmpty) return const SplashView();
             Session.current.value = u;
+            Push.register(u.id);
             return u.isProvider ? ProviderShell(key: ValueKey('p${u.id}')) : TutorShell(key: ValueKey('t${u.id}'));
           },
         );

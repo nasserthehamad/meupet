@@ -19,6 +19,12 @@ dependencies:
   video_player: any
   url_launcher: any
   geolocator: any
+  firebase_messaging: any
+  http: any
+  file_picker: any
+  record: any
+  path_provider: any
+  audioplayers: any
 
 dev_dependencies:
   flutter_test:

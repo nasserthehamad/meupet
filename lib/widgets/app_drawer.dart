@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../core/catalog.dart';
 import '../core/db.dart';
 import '../core/theme.dart';
 import '../screens/common/chat_list_screen.dart';
 import '../screens/common/emergency_screen.dart';
 import '../screens/common/profile_screen.dart';
 import '../screens/provider/patients_screen.dart';
+import '../screens/common/store_screens.dart';
+import '../screens/tutor/activity_screen.dart';
 import '../screens/tutor/agenda_screen.dart';
 import '../screens/tutor/my_pets_screen.dart';
 import '../screens/tutor/pet_form_screen.dart';
@@ -200,6 +203,20 @@ class AppDrawer extends StatelessWidget {
                 icon: Icons.pets_rounded,
                 label: 'Meus Pets',
                 onTap: () => _go(context, const MyPetsScreen()),
+              ),
+            if (!prov)
+              _Item(
+                color: AppColors.orange,
+                icon: Icons.local_taxi_rounded,
+                label: 'Corridas e Pedidos',
+                onTap: () => _go(context, const ActivityScreen()),
+              ),
+            if (prov && isStoreUser(Session.current.value?.categories ?? const []))
+              _Item(
+                color: kProdutoColor,
+                icon: Icons.inventory_2_rounded,
+                label: 'Meus Produtos',
+                onTap: () => _go(context, const ManageProductsScreen()),
               ),
             _Item(color: const Color(0xFFD9A441), icon: Icons.lock_rounded, label: 'Senha', onTap: () => _password(context)),
             const _Divider(),

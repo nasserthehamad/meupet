@@ -13,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:meupet/core/catalog.dart';
 import 'package:meupet/core/db.dart';
 import 'package:meupet/core/location.dart';
+import 'package:meupet/core/push.dart';
 import 'package:meupet/core/models.dart';
 import 'package:meupet/core/theme.dart';
 import 'package:meupet/screens/auth/login_screen.dart';
@@ -21,6 +22,8 @@ import 'package:meupet/screens/common/chat_list_screen.dart';
 import 'package:meupet/screens/common/chat_screen.dart';
 import 'package:meupet/screens/common/emergency_screen.dart';
 import 'package:meupet/screens/common/prescription_screens.dart';
+import 'package:meupet/screens/common/ride_screens.dart';
+import 'package:meupet/screens/common/store_screens.dart';
 import 'package:meupet/screens/common/profile_screen.dart';
 import 'package:meupet/screens/provider/provider_shell.dart';
 import 'package:meupet/screens/tutor/adoption_screen.dart';
@@ -41,6 +44,10 @@ late AppUser tutor;
 late AppUser vet;
 late Pet athosPet;
 late Prescription rxSample;
+late AppUser taxi;
+late AppUser shop;
+late String rideId;
+late String orderId;
 
 Future<void> loadFonts() async {
   final manifest = json.decode(await rootBundle.loadString('FontManifest.json')) as List<dynamic>;
@@ -220,6 +227,61 @@ Future<FakeFirebaseFirestore> seed() async {
       'providerId': r[0], 'tutorId': r[1], 'tutorName': r[2], 'stars': r[3], 'text': r[4], 'updatedAt': ts(day(-3, 12)),
     });
   }
+
+  // ---- fase 3: TaxiPet, loja, avaliação do pet, anexos
+  taxi = AppUser.fromDoc(await db.collection('users').doc('taxi1').get());
+  shop = AppUser.fromDoc(await db.collection('users').doc('shop1').get());
+  Future<String> ride(String pet, String name, String species, String pickup, String dest, DateTime when, String status, {String notes = ''}) async {
+    final r = await db.collection('rides').add({
+      'tutorId': 'tutor1', 'tutorName': 'Jiara Martins', 'tutorPhone': '(11) 98888-1234', 'petId': pet, 'petName': name,
+      'petSpecies': species, 'petPhoto': photo(pet), 'driverId': 'taxi1', 'driverName': 'Pet Taxi', 'driverPhone': '(11) 97777-0000',
+      'pickup': pickup, 'destination': dest, 'when': ts(when), 'notes': notes, 'status': status, 'updatedAt': ts(when),
+    });
+    return r.id;
+  }
+  rideId = await ride('athos', 'Athos', 'Cachorro', 'R. das Flores, 120 — Vila Mariana', 'Vet Amicão — Av. do Estado, 1200', day(0, 15), 'a_caminho',
+      notes: 'Ida e volta. Ele é grande, vai na caixa G.');
+  await ride('lolla', 'Lolla', 'Coelho', 'R. das Flores, 120 — Vila Mariana', 'Mania de Bicho — R. Gerson França, 88', day(1, 9, 30), 'pedida');
+  await ride('zuka', 'Zuka', 'Gato', 'R. das Flores, 120 — Vila Mariana', 'Vet Amicão — Av. do Estado, 1200', day(2, 8), 'aceita');
+  final products = [
+    ['Ração Golden Cães Adultos 15kg', 189.9, 'Ração'],
+    ['Petisco Bifinho de Carne 500g', 24.5, 'Ração'],
+    ['Brinquedo Corda com Bola', 19.9, 'Brinquedos'],
+    ['Cama Pet Redonda M', 129.0, 'Cama e Casa'],
+    ['Shampoo Neutro 500ml', 32.0, 'Higiene e Limpeza'],
+    ['Coleira Peitoral Ajustável', 59.9, 'Roupas e Acessórios'],
+  ];
+  final pids = <String>[];
+  for (final pr in products) {
+    final r = await db.collection('products').add({'storeId': 'shop1', 'name': pr[0], 'price': pr[1], 'category': pr[2], 'photoUrl': '', 'available': true});
+    pids.add(r.id);
+  }
+  final o1 = await db.collection('orders').add({
+    'storeId': 'shop1', 'storeName': 'Mania de Bicho', 'tutorId': 'tutor1', 'tutorName': 'Jiara Martins', 'tutorPhone': '(11) 98888-1234',
+    'tutorPhoto': photo('jiara'),
+    'items': [
+      {'productId': pids[0], 'name': products[0][0], 'price': 189.9, 'qty': 1},
+      {'productId': pids[2], 'name': products[2][0], 'price': 19.9, 'qty': 2},
+    ],
+    'total': 229.7, 'pickupName': 'Jiara Martins', 'pickupDate': ts(day(1, 10)), 'notes': '', 'nfe': '', 'status': 'novo', 'createdAt': ts(day(0, 9)),
+  });
+  orderId = o1.id;
+  await db.collection('orders').add({
+    'storeId': 'shop1', 'storeName': 'Mania de Bicho', 'tutorId': 'tutor1', 'tutorName': 'Jiara Martins', 'tutorPhoto': photo('jiara'),
+    'items': [{'productId': pids[4], 'name': products[4][0], 'price': 32.0, 'qty': 1}],
+    'total': 32.0, 'pickupName': 'João J. P.', 'pickupDate': ts(day(0, 17)), 'nfe': 'NB2540', 'status': 'confirmado', 'createdAt': ts(day(-1, 9)),
+  });
+  final beh = db.collection('pets').doc('athos').collection('behavior');
+  await beh.add({'providerId': 'shop1', 'providerName': 'Mania de Bicho', 'stars': 5,
+      'text': 'Acostumado a tomar banho fora. Ansioso, mas não fica agressivo. Dispensa focinheira.', 'createdAt': ts(day(-12, 10))});
+  await beh.add({'providerId': 'taxi1', 'providerName': 'Pet Taxi', 'stars': 5,
+      'text': 'Arteiro e educadinho. Anda bem dentro da caixa de transporte.', 'createdAt': ts(day(-30, 10))});
+  final shopChat = db.collection('chats').doc(Db.chatIdFor('tutor1', 'shop1')).collection('messages');
+  await shopChat.add({'senderId': 'shop1', 'text': 'Oi Jiara! Segue a nota do banho da Lolla.', 'createdAt': ts(day(0, 9, 5)),
+      'attachment': {'url': 'https://example.com/nota.pdf', 'type': 'pdf', 'name': 'nota_banho_lolla.pdf'}});
+  await shopChat.add({'senderId': 'tutor1', 'text': '', 'createdAt': ts(day(0, 9, 8)),
+      'attachment': {'url': 'https://example.com/audio.m4a', 'type': 'audio', 'name': 'audio.m4a', 'seconds': 7}});
+  await shopChat.add({'senderId': 'shop1', 'text': 'A Lolla pode ir às 13h30?', 'createdAt': ts(day(0, 9, 12))});
   return db;
 }
 
@@ -276,7 +338,7 @@ Future<void> shot(WidgetTester t, String name, Widget Function() home, {String? 
   t.view.padding = const FakeViewPadding(top: 66);
   clearUserCache();
   Db.fs = await t.runAsync(seed) as FirebaseFirestore;
-  Session.current.value = as == 'vet' ? vet : (as == 'tutor' ? tutor : null);
+  Session.current.value = {'vet': vet, 'tutor': tutor, 'taxi': taxi, 'shop': shop}[as];
   await t.pumpWidget(app(home()));
   await settle(t);
   if (act != null) {
@@ -306,6 +368,7 @@ Future<void> Function(WidgetTester) tapKey(String key) => (t) async {
 void main() {
   LoginHero.enableVideo = false;
   ProviderShell.alertBanner = false;
+  Push.enabled = false;
   LocationService.testOverride = () => const GeoPos(-23.5874, -46.6576);
   setUpAll(loadFonts);
 
@@ -345,4 +408,19 @@ void main() {
   testWidgets('31 perto de mim', (t) => shot(t, '31_perto_de_mim',
       () => ProvidersListScreen(title: 'Perto de mim', categories: allServiceCats.map((c) => c.name).toList(), nearMe: true), as: 'tutor'));
   testWidgets('32 avaliar', (t) => shot(t, '32_avaliar', () => ProviderDetailScreen(provider: vet), as: 'tutor', act: tapKey('avaliar')));
+  testWidgets('33 taxi pedir', (t) => shot(t, '33_taxi_pedir', () => RideRequestScreen(driver: taxi), as: 'tutor'));
+  testWidgets('34 corrida tutor', (t) => shot(t, '34_corrida_tutor', () => RideScreen(rideId: rideId), as: 'tutor'));
+  testWidgets('35 taxi inicio', (t) => shot(t, '35_taxi_inicio', () => const ProviderShell(), as: 'taxi'));
+  testWidgets('36 loja vitrine', (t) => shot(t, '36_loja_vitrine', () => StoreScreen(store: shop), as: 'tutor',
+      act: (t) async {
+        await t.tap(find.text('Adicionar').first);
+        await t.pump();
+        await t.tap(find.text('Adicionar').first);
+      }));
+  testWidgets('37 loja pedidos', (t) => shot(t, '37_loja_pedidos', () => const ProviderShell(), as: 'shop', act: tapKey('modo_pedidos')));
+  testWidgets('38 pedido tutor', (t) => shot(t, '38_pedido_tutor', () => OrderScreen(orderId: orderId), as: 'tutor'));
+  testWidgets('39 info pet', (t) => shot(t, '39_info_pet', () => RideScreen(rideId: rideId), as: 'taxi',
+      act: (t) async => t.tap(find.text('Info. do pet'))));
+  testWidgets('40 chat anexos', (t) => shot(t, '40_chat_anexos',
+      () => ChatScreen(chatId: Db.chatIdFor('tutor1', 'shop1'), otherName: 'Mania de Bicho', otherId: 'shop1'), as: 'tutor'));
 }

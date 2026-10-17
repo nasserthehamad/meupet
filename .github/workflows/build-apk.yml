@@ -42,12 +42,20 @@ jobs:
           # Firebase exige minSdk 23
           sed -i -E 's/flutter\.minSdkVersion/23/' android/app/build.gradle*
           # Permissão de internet e nome do app
-          sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>\n    <application#' android/app/src/main/AndroidManifest.xml
+          sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>\n    <uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <application#' android/app/src/main/AndroidManifest.xml
           sed -i 's/android:label="meupet"/android:label="Meu Pet+"/' android/app/src/main/AndroidManifest.xml
           # Sempre em retrato (também no BlueStacks)
           sed -i '0,/<activity/s//<activity android:screenOrientation="portrait"/' android/app/src/main/AndroidManifest.xml
           # Ligar (tel:) e abrir links
           sed -i 's#</manifest>#    <queries><intent><action android:name="android.intent.action.DIAL"/><data android:scheme="tel"/></intent><intent><action android:name="android.intent.action.VIEW"/><data android:scheme="https"/></intent></queries>\n</manifest>#' android/app/src/main/AndroidManifest.xml
+          # Notificações: ícone (patinha), cor e canal padrão
+          sed -i 's#</application>#    <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_stat_meupet"/>\n        <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/meupet_teal"/>\n        <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="meupet"/>\n    </application>#' android/app/src/main/AndroidManifest.xml
+          cp -r android-src/res/* android/app/src/main/res/
+          # MainActivity com os canais de notificação (SOS com som de alarme)
+          MA=$(find android/app/src/main -name MainActivity.kt | head -1)
+          PKG=$(grep '^package' "$MA")
+          { echo "$PKG"; echo; tail -n +2 android-src/MainActivity.kt; } > "$MA.new" && mv "$MA.new" "$MA"
+          head -3 "$MA"
           grep -n "screenOrientation\|queries" android/app/src/main/AndroidManifest.xml || true
           grep -n "applicationId\|minSdk" android/app/build.gradle* || true
 
