@@ -1,0 +1,9 @@
+{
+  // Publicado pelo Cloudflare Workers Builds a partir desta pasta (worker/).
+  "name": "meupet-push",
+  "main": "meupet-push.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "vars": { "PROJECT_ID": "meupet-2c05b" }
+  // SERVICE_ACCOUNT é um segredo: fica só no painel do Cloudflare.
+}
