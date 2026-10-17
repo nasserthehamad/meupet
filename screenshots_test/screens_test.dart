@@ -475,6 +475,17 @@ void main() {
   testWidgets('57 chat emoji', (t) => shot(t, '57_chat_emoji',
       () => ChatScreen(chatId: Db.chatIdFor('tutor1', 'vet1'), otherName: 'Vet Amicão', otherId: 'vet1'), as: 'tutor', act: tapKey('emoji')));
 
+  // O teclado não pode fechar sozinho no login (a tela não muda de estrutura).
+  testWidgets('58 login teclado', (t) => shot(t, '58_login_teclado', () => const LoginScreen(), act: (t) async {
+        await t.tap(find.byType(TextField).first);
+        await t.pump();
+        t.view.viewInsets = const FakeViewPadding(bottom: 850);
+        await t.pump(const Duration(milliseconds: 300));
+        await t.pump(const Duration(milliseconds: 300));
+        expect(FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<TextField>(), isNotNull,
+            reason: 'o campo de e-mail perdeu o foco quando o teclado abriu');
+      }));
+
   // Tema | Modo e modo escuro
   Future<void> menuTema(WidgetTester t) async {
     await tapKey('menu')(t);
