@@ -6,6 +6,7 @@ import '../../core/db.dart';
 import '../../core/models.dart';
 import '../../core/theme.dart';
 import '../../widgets/common.dart';
+import '../common/prescription_screens.dart';
 import 'pet_form_screen.dart';
 import 'providers_screen.dart';
 
@@ -351,9 +352,13 @@ class HistoricoTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+    return StreamBuilder<List<Prescription>>(
+      stream: Db.petPrescriptions(pet.id),
+      builder: (context, rxSnap) => StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: Db.petSub(pet.id, 'records').snapshots(),
       builder: (context, snap) {
+        final rx = rxSnap.data ?? const <Prescription>[];
+        final vet = canPrescribe(Session.current.value);
         final docs = (snap.data?.docs ?? []).toList()
           ..sort((a, b) => (tsToDate(b.data()['date']) ?? DateTime(1900)).compareTo(tsToDate(a.data()['date']) ?? DateTime(1900)));
         List<QueryDocumentSnapshot<Map<String, dynamic>>> byType(String t) => docs.where((d) => d.data()['type'] == t).toList();
@@ -391,12 +396,59 @@ class HistoricoTab extends StatelessWidget {
                 if (pet.food.isNotEmpty) ...[const Divider(height: 18), Text('Alimentação: ${pet.food}')],
               ]),
             ),
-            _RecordSection(band: 2, pet: pet, type: 'receita', title: 'Receitas Médicas', icon: Icons.receipt_long_rounded, docs: byType('receita')),
-            _RecordSection(band: 3, pet: pet, type: 'exame', title: 'Exames Pet', icon: Icons.biotech_rounded, docs: byType('exame')),
+            _RecordSection(
+              band: 2,
+              pet: pet,
+              type: 'receita',
+              title: vet ? 'Medicações Prescritas' : 'Receitas Médicas',
+              icon: Icons.receipt_long_rounded,
+              docs: byType('receita'),
+              rx: rx.where((e) => !e.isExam).toList(),
+              header: vet
+                  ? [
+                      VetRxButton(
+                        key: const Key('nova_receita'),
+                        icon: Icons.post_add_rounded,
+                        label: 'Nova Receita',
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PrescriptionEditor(pet: pet))),
+                      ),
+                      const SizedBox(width: 8),
+                      VetRxButton(
+                        icon: Icons.assignment_rounded,
+                        label: 'Minhas Receitas',
+                        filled: false,
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyPrescriptionsScreen())),
+                      ),
+                    ]
+                  : null,
+            ),
+            _RecordSection(
+              band: 3,
+              pet: pet,
+              type: 'exame',
+              title: 'Exames Pet',
+              icon: Icons.biotech_rounded,
+              docs: byType('exame'),
+              rx: rx.where((e) => e.isExam).toList(),
+              header: vet
+                  ? [
+                      VetRxButton(
+                        key: const Key('pedir_exame'),
+                        icon: Icons.biotech_rounded,
+                        label: 'Pedir exame',
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => PrescriptionEditor(pet: pet, kind: 'exame')),
+                        ),
+                      ),
+                    ]
+                  : null,
+            ),
             _RecordSection(band: 4, pet: pet, type: 'consulta', title: 'Consultas', icon: Icons.medical_services_rounded, docs: byType('consulta')),
           ],
         );
       },
+    ),
     );
   }
 }
@@ -431,7 +483,18 @@ class _RecordSection extends StatelessWidget {
   final String title;
   final IconData icon;
   final List<QueryDocumentSnapshot<Map<String, dynamic>>> docs;
-  const _RecordSection({required this.band, required this.pet, required this.type, required this.title, required this.icon, required this.docs});
+  final List<Prescription> rx;
+  final List<Widget>? header;
+  const _RecordSection({
+    required this.band,
+    required this.pet,
+    required this.type,
+    required this.title,
+    required this.icon,
+    required this.docs,
+    this.rx = const [],
+    this.header,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -443,13 +506,17 @@ class _RecordSection extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(child: Text(title, style: sectionStyle())),
-          IconButton(
-            tooltip: 'Adicionar',
-            icon: const Icon(Icons.add_circle_rounded, color: AppColors.orange, size: 30),
-            onPressed: () => showRecordForm(context, pet.id, type, title),
-          ),
+          if (header != null)
+            ...header!
+          else
+            IconButton(
+              tooltip: 'Adicionar',
+              icon: const Icon(Icons.add_circle_rounded, color: AppColors.orange, size: 30),
+              onPressed: () => showRecordForm(context, pet.id, type, title),
+            ),
         ]),
-        if (docs.isEmpty)
+        for (final p in rx) PrescriptionRow(p: p),
+        if (docs.isEmpty && rx.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 6),
             child: Text('Nenhum registro ainda.', style: TextStyle(color: AppColors.muted, fontSize: 13)),

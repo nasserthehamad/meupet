@@ -42,7 +42,7 @@ jobs:
           # Firebase exige minSdk 23
           sed -i -E 's/flutter\.minSdkVersion/23/' android/app/build.gradle*
           # Permissão de internet e nome do app
-          sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <application#' android/app/src/main/AndroidManifest.xml
+          sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>\n    <application#' android/app/src/main/AndroidManifest.xml
           sed -i 's/android:label="meupet"/android:label="Meu Pet+"/' android/app/src/main/AndroidManifest.xml
           # Sempre em retrato (também no BlueStacks)
           sed -i '0,/<activity/s//<activity android:screenOrientation="portrait"/' android/app/src/main/AndroidManifest.xml

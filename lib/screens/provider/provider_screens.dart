@@ -6,6 +6,7 @@ import '../../core/models.dart';
 import '../../core/theme.dart';
 import '../../widgets/common.dart';
 import '../common/chat_screen.dart';
+import '../common/emergency_screen.dart';
 import '../tutor/pet_detail_screen.dart';
 
 String providerGroupWord() {
@@ -219,7 +220,10 @@ class _ProviderHeader extends StatelessWidget {
                 child: PhotoAvatar(photo: user?.photo, size: 104, fallbackIcon: Icons.storefront_rounded, border: Colors.white),
               ),
             ),
-            const _EmergencyCard(count: 0),
+            StreamBuilder<List<Emergency>>(
+              stream: Db.openEmergencies(),
+              builder: (context, snap) => _EmergencyCard(count: snap.data?.length ?? 0),
+            ),
           ]),
         ]),
       ),
@@ -227,22 +231,23 @@ class _ProviderHeader extends StatelessWidget {
   }
 }
 
-/// Painel "EMERGÊNCIA" (fase 2: alertas SOS reais com "Aceitar").
+/// Painel "EMERGÊNCIA": chamados SOS abertos, com "Aceitar".
 class _EmergencyCard extends StatelessWidget {
   final int count;
   const _EmergencyCard({required this.count});
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () => showSnack(context, 'Os alertas de SOS dos tutores aparecerão aqui (próxima etapa).'),
+      key: const Key('painel_emergencia'),
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EmergencyAlertsScreen())),
       borderRadius: BorderRadius.circular(12),
       child: Container(
         width: 74,
         padding: const EdgeInsets.fromLTRB(4, 8, 6, 8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: count > 0 ? const Color(0xFFFFF1F1) : Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFF2B8BC), width: 2),
+          border: Border.all(color: count > 0 ? AppColors.red : const Color(0xFFF2B8BC), width: 2),
         ),
         child: Row(children: [
           const RotatedBox(

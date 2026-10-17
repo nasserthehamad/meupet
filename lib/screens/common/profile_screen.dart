@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/catalog.dart';
 import '../../core/db.dart';
+import '../../core/location.dart';
 import '../../core/models.dart';
 import '../../core/theme.dart';
 import '../../widgets/common.dart';
@@ -20,6 +21,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late final _business = TextEditingController(text: _u.businessName);
   late final _address = TextEditingController(text: _u.address);
   late final _desc = TextEditingController(text: _u.description);
+  late final _crmv = TextEditingController(text: _u.crmv);
+  final Map<String, TextEditingController> _price = {};
+  late double? _lat = _u.lat;
+  late double? _lng = _u.lng;
+  bool _locating = false;
+
+  TextEditingController _priceCtrl(String cat) => _price.putIfAbsent(cat, () {
+        final v = _u.prices[cat];
+        return TextEditingController(text: v == null ? '' : fmtMoney(v).replaceAll('R\$ ', ''));
+      });
+
+  Future<void> _useMyLocation() async {
+    setState(() => _locating = true);
+    final p = await LocationService.current();
+    if (!mounted) return;
+    setState(() {
+      _locating = false;
+      if (p != null) {
+        _lat = p.lat;
+        _lng = p.lng;
+      }
+    });
+    showSnack(context, p == null ? (LocationService.lastError ?? 'Sem localização.') : 'Localização marcada! Toque em Salvar.', error: p == null);
+  }
   late final Set<String> _cats = {..._u.categories};
   late final Set<String> _animals = {..._u.animals};
   late String? _photo = _u.photo;
@@ -37,6 +62,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'businessName': _business.text.trim(),
           'address': _address.text.trim(),
           'description': _desc.text.trim(),
+          'crmv': _crmv.text.trim(),
+          'prices': {
+            for (final c in _cats)
+              if (parseMoney(_priceCtrl(c).text) != null) c: parseMoney(_priceCtrl(c).text),
+          },
+          'lat': _lat,
+          'lng': _lng,
           'categories': _cats.toList(),
           'animals': _animals.toList(),
         },
@@ -87,6 +119,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 12),
               TextField(controller: _desc, maxLines: 3, decoration: inputDeco('Descrição (aparece para os tutores)', icon: Icons.info_outline_rounded)),
               const SizedBox(height: 12),
+              TextField(controller: _crmv, decoration: inputDeco('CRMV (veterinário — vai nas receitas)', icon: Icons.badge_rounded)),
+              const SizedBox(height: 12),
+              WhiteBlock(
+                margin: EdgeInsets.zero,
+                padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+                child: Row(children: [
+                  Icon(_lat != null ? Icons.where_to_vote_rounded : Icons.location_off_rounded,
+                      color: _lat != null ? AppColors.green : AppColors.muted),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _lat != null
+                          ? 'Localização no mapa marcada (aparece em "Perto de mim").'
+                          : 'Marque a localização do estabelecimento para aparecer em "Perto de mim". Faça isso estando no local.',
+                      style: const TextStyle(fontSize: 12.5),
+                    ),
+                  ),
+                  _locating
+                      ? const Padding(padding: EdgeInsets.all(10), child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)))
+                      : TextButton(onPressed: _useMyLocation, child: Text(_lat != null ? 'Atualizar' : 'Marcar')),
+                ]),
+              ),
+              const SizedBox(height: 12),
               const Text('Serviços oferecidos', style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 6),
               Wrap(spacing: 8, runSpacing: 4, children: [
@@ -101,6 +156,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onSelected: (v) => setState(() => v ? _cats.add(c.name) : _cats.remove(c.name)),
                   ),
               ]),
+              if (_cats.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                const Text('Preços (a partir de)', style: TextStyle(fontWeight: FontWeight.w600)),
+                const Text('Usados no "Custo médio" e mostrados aos tutores. Deixe em branco para não informar.',
+                    style: TextStyle(fontSize: 12, color: AppColors.muted)),
+                const SizedBox(height: 6),
+                for (final c in allServiceCats.where((c) => _cats.contains(c.name)))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: TextField(
+                      controller: _priceCtrl(c.name),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: inputDeco(c.name, icon: c.icon).copyWith(prefixText: 'R\$ '),
+                    ),
+                  ),
+              ],
               const SizedBox(height: 16),
               const Text('Animais atendidos', style: TextStyle(fontWeight: FontWeight.w600)),
               const Text('Deixe em branco se atende todos.', style: TextStyle(fontSize: 12, color: AppColors.muted)),

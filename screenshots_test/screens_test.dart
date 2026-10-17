@@ -12,6 +12,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:meupet/core/catalog.dart';
 import 'package:meupet/core/db.dart';
+import 'package:meupet/core/location.dart';
 import 'package:meupet/core/models.dart';
 import 'package:meupet/core/theme.dart';
 import 'package:meupet/screens/auth/login_screen.dart';
@@ -19,11 +20,13 @@ import 'package:meupet/screens/auth/signup_screen.dart';
 import 'package:meupet/screens/common/chat_list_screen.dart';
 import 'package:meupet/screens/common/chat_screen.dart';
 import 'package:meupet/screens/common/emergency_screen.dart';
+import 'package:meupet/screens/common/prescription_screens.dart';
 import 'package:meupet/screens/common/profile_screen.dart';
 import 'package:meupet/screens/provider/provider_shell.dart';
 import 'package:meupet/screens/tutor/adoption_screen.dart';
 import 'package:meupet/screens/tutor/agenda_screen.dart';
 import 'package:meupet/screens/tutor/animal_screen.dart';
+import 'package:meupet/screens/tutor/average_cost_screen.dart';
 import 'package:meupet/screens/tutor/my_pets_screen.dart';
 import 'package:meupet/screens/tutor/pet_detail_screen.dart';
 import 'package:meupet/screens/tutor/pet_form_screen.dart';
@@ -36,6 +39,8 @@ Timestamp ts(DateTime d) => Timestamp.fromDate(d);
 
 late AppUser tutor;
 late AppUser vet;
+late Pet athosPet;
+late Prescription rxSample;
 
 Future<void> loadFonts() async {
   final manifest = json.decode(await rootBundle.loadString('FontManifest.json')) as List<dynamic>;
@@ -64,17 +69,22 @@ Future<FakeFirebaseFirestore> seed() async {
       'description': 'Clínica veterinária 24h com atendimento humanizado, vacinas, exames e TaxiPet.',
       'categories': ['Veterinário', 'Vacinação', 'Exames', 'Emergência 24h', 'TaxiPet'],
       'animals': ['Cachorro', 'Gato', 'Coelho', 'Aves', 'Roedor'],
+      'crmv': '123456-SP', 'lat': -23.5960, 'lng': -46.6610,
+      'prices': {'Veterinário': 150, 'Vacinação': 90, 'Exames': 120, 'Emergência 24h': 280, 'TaxiPet': 45},
     },
     'shop1': {
       'name': 'Carla Souza', 'email': 'mania@bicho.com', 'role': 'prestador', 'photo': photo('maniadebicho'),
       'businessName': 'Mania de Bicho', 'address': 'R. Gerson França, 88', 'city': 'São Paulo',
       'categories': ['Banho e Tosa', 'Petshop', 'Hotel', 'Creche', 'Ração', 'Brinquedos'],
+      'lat': -23.5505, 'lng': -46.6333,
+      'prices': {'Banho e Tosa': 70, 'Hotel': 110, 'Creche': 85, 'Ração': 189.9},
     },
     'taxi1': {
       'name': 'Bruno Lima', 'email': 'pet@taxi.com', 'role': 'prestador', 'photo': photo('pettaxi'),
       'businessName': 'Pet Taxi', 'address': 'Atende toda a zona sul', 'city': 'São Paulo',
       'categories': ['TaxiPet', 'DogWalker', 'Banho e Tosa'],
       'animals': ['Cachorro', 'Gato'],
+      'prices': {'TaxiPet': 35, 'DogWalker': 30, 'Banho e Tosa': 60},
     },
   };
   for (final e in users.entries) {
@@ -169,6 +179,47 @@ Future<FakeFirebaseFirestore> seed() async {
     'names': {'tutor1': 'Jiara Martins', 'shop1': 'Mania de Bicho'},
     'lastMessage': 'A Lolla pode ir às 13h30?', 'lastSender': 'shop1', 'updatedAt': ts(day(0, 9, 12)),
   });
+
+  // ---- fase 2: receitas, SOS, avaliações
+  athosPet = Pet.fromDoc(await db.collection('pets').doc('athos').get());
+  final rx = Prescription(
+    kind: 'receita', petId: 'athos', petName: 'Athos', petSpecies: 'Cachorro', petBreed: 'Pastor Alemão',
+    petAge: ageLabel(athosPet.birthDate), petWeight: '37', petHeight: '65', ownerId: 'tutor1', ownerName: 'Jiara Martins',
+    providerId: 'vet1', providerName: 'Vet Amicão', professional: 'Dra. Adeline Palmerston', crmv: '123456-SP',
+    items: const [
+      RxItem(name: 'Suplemento Ômega 3 1000mg', route: 'Oral', use: '1 cápsula por dia durante 45 dias'),
+      RxItem(name: 'Prednisona 20mg', route: 'Oral', use: '1 comprimido ao dia durante 10 dias'),
+      RxItem(name: 'Xampu Cloresten', route: 'Tópico', use: 'Aplicar no pelo molhado, massagear e deixar agir por 10 minutos. 2x por semana por 1 mês.'),
+    ],
+    consultaDate: day(-2, 10), returnDate: day(28, 10), signedAt: day(-2, 10, 40), code: 'MP-7K2Q-9XD4',
+  );
+  final rxRef = await db.collection('prescriptions').add({...rx.toMap(), 'createdAt': ts(day(-2, 10, 40))});
+  rxSample = Prescription.fromDoc(await rxRef.get());
+  await db.collection('prescriptions').add({
+    ...Prescription(
+      kind: 'exame', petId: 'athos', petName: 'Athos', petSpecies: 'Cachorro', ownerId: 'tutor1', ownerName: 'Jiara Martins',
+      providerId: 'vet1', providerName: 'Vet Amicão', professional: 'Dra. Adeline Palmerston', crmv: '123456-SP',
+      exams: const ['Hemograma completo', 'Bioquímico (rins e fígado)'], notes: 'Controle da leishmaniose',
+      consultaDate: day(-2, 10), signedAt: day(-2, 10, 45), code: 'MP-3HQ8-ZP2C', seen: true,
+    ).toMap(),
+  });
+  await db.collection('emergencies').add({
+    'tutorId': 'tutor1', 'tutorName': 'Jiara Martins', 'tutorPhone': '(11) 98888-1234', 'petId': 'sanna', 'petName': 'Sanna',
+    'petSpecies': 'Aves', 'petPhoto': photo('sanna'), 'description': 'Falta de ar, está de bico aberto',
+    'city': 'São Paulo', 'status': 'aberto', 'createdAt': ts(DateTime.now().subtract(const Duration(minutes: 4))),
+  });
+  final reviews = [
+    ['vet1', 'tutor1', 'Jiara Martins', 5, 'Atendimento excelente com o Athos, super atenciosos!'],
+    ['vet1', 'tutorA', 'Marcos Lima', 5, 'Salvaram minha gata de madrugada. Recomendo demais.'],
+    ['vet1', 'tutorB', 'Ana Paula', 4, 'Ótimos profissionais, só demorou um pouco.'],
+    ['shop1', 'tutor1', 'Jiara Martins', 4, 'Banho caprichado.'],
+    ['taxi1', 'tutorA', 'Marcos Lima', 5, 'Pontual e cuidadoso.'],
+  ];
+  for (final r in reviews) {
+    await db.collection('reviews').doc('${r[0]}_${r[1]}').set({
+      'providerId': r[0], 'tutorId': r[1], 'tutorName': r[2], 'stars': r[3], 'text': r[4], 'updatedAt': ts(day(-3, 12)),
+    });
+  }
   return db;
 }
 
@@ -247,6 +298,8 @@ Future<void> Function(WidgetTester) tapKey(String key) => (t) async {
 
 void main() {
   LoginHero.enableVideo = false;
+  ProviderShell.alertBanner = false;
+  LocationService.testOverride = () => const GeoPos(-23.5874, -46.6576);
   setUpAll(loadFonts);
 
   testWidgets('01 login', (t) => shot(t, '01_login', () => const LoginScreen()));
@@ -277,4 +330,12 @@ void main() {
   testWidgets('23 prestador menu', (t) => shot(t, '23_prestador_menu', () => const ProviderShell(), as: 'vet', act: tapKey('menu')));
   testWidgets('24 animais', (t) => shot(t, '24_animais', () => const AnimalsScreen(), as: 'tutor'));
   testWidgets('25 animal cachorro', (t) => shot(t, '25_animal_cachorro', () => AnimalScreen(animal: animalCategories[1]), as: 'tutor'));
+  testWidgets('26 receituario', (t) => shot(t, '26_receituario', () => PrescriptionEditor(pet: athosPet, initial: rxSample), as: 'vet'));
+  testWidgets('27 receita tutor', (t) => shot(t, '27_receita_tutor', () => PrescriptionView(p: rxSample), as: 'tutor'));
+  testWidgets('28 historico vet', (t) => shot(t, '28_historico_vet', () => const HistoricoScreen(petId: 'athos'), as: 'vet'));
+  testWidgets('29 alertas vet', (t) => shot(t, '29_alertas_vet', () => const EmergencyAlertsScreen(), as: 'vet'));
+  testWidgets('30 custo medio', (t) => shot(t, '30_custo_medio', () => AverageCostScreen(group: serviceGroups[1]), as: 'tutor'));
+  testWidgets('31 perto de mim', (t) => shot(t, '31_perto_de_mim',
+      () => ProvidersListScreen(title: 'Perto de mim', categories: allServiceCats.map((c) => c.name).toList(), nearMe: true), as: 'tutor'));
+  testWidgets('32 avaliar', (t) => shot(t, '32_avaliar', () => ProviderDetailScreen(provider: vet), as: 'tutor', act: tapKey('avaliar')));
 }

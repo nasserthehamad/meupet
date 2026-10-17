@@ -8,6 +8,7 @@ import '../../widgets/common.dart';
 import 'adoption_screen.dart';
 import 'agenda_screen.dart';
 import 'animal_screen.dart';
+import 'average_cost_screen.dart';
 import 'providers_screen.dart';
 
 const _homeBg = Color(0xFFDCDCDC);
@@ -331,14 +332,14 @@ class _GroupPage extends StatelessWidget {
         page = ProvidersListScreen(title: 'Perto de mim', categories: cats, nearMe: true);
         break;
       case CatKind.reviews:
-        page = ProvidersListScreen(title: 'Avaliações', categories: cats);
+        page = ProvidersListScreen(title: 'Avaliações', categories: cats, sortByRating: true);
         break;
       case CatKind.schedule:
         page = ProvidersListScreen(title: 'Agendar', categories: cats, bookOnTap: true);
         break;
       case CatKind.averageCost:
-        showSnack(context, 'O custo médio dos serviços chega na próxima etapa.');
-        return;
+        page = AverageCostScreen(group: group);
+        break;
     }
     Navigator.push(context, MaterialPageRoute(builder: (_) => page));
   }

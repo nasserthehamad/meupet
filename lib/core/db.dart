@@ -25,6 +25,9 @@ class Db {
   static CollectionReference<Map<String, dynamic>> get appointments => fs.collection('appointments');
   static CollectionReference<Map<String, dynamic>> get adoptions => fs.collection('adoptions');
   static CollectionReference<Map<String, dynamic>> get chats => fs.collection('chats');
+  static CollectionReference<Map<String, dynamic>> get prescriptions => fs.collection('prescriptions');
+  static CollectionReference<Map<String, dynamic>> get emergencies => fs.collection('emergencies');
+  static CollectionReference<Map<String, dynamic>> get reviews => fs.collection('reviews');
 
   // ---------- Auth ----------
   static Future<void> signIn(String email, String pass) =>
@@ -163,6 +166,143 @@ class Db {
       'updatedAt': FieldValue.serverTimestamp(),
     });
     await batch.commit();
+  }
+
+  /// Abre (ou cria) a conversa e manda uma mensagem automática.
+  static Future<String> notifyByChat(String otherId, String otherName, String text) async {
+    final id = await openChat(otherId, otherName);
+    await sendMessage(id, text);
+    return id;
+  }
+
+  // ---------- Receitas e pedidos de exame ----------
+  static List<Prescription> _sortRx(List<Prescription> l) =>
+      l..sort((a, b) => (b.signedAt ?? DateTime(1900)).compareTo(a.signedAt ?? DateTime(1900)));
+
+  /// Do pet: o tutor vê as dele; prestadores veem o histórico do paciente.
+  static Stream<List<Prescription>> petPrescriptions(String petId) {
+    Query<Map<String, dynamic>> q = prescriptions.where('petId', isEqualTo: petId);
+    if (Session.current.value?.isProvider != true) q = q.where('ownerId', isEqualTo: Session.uid);
+    return q.snapshots().map((s) => _sortRx(s.docs.map(Prescription.fromDoc).toList()));
+  }
+
+  static Stream<List<Prescription>> providerPrescriptions(String uid) => prescriptions
+      .where('providerId', isEqualTo: uid)
+      .snapshots()
+      .map((s) => _sortRx(s.docs.map(Prescription.fromDoc).toList()));
+
+  static Future<String> sendPrescription(Prescription p) async {
+    final ref = await prescriptions.add({...p.toMap(), 'createdAt': FieldValue.serverTimestamp()});
+    final what = p.isExam ? 'um pedido de exame' : 'uma nova receita';
+    try {
+      await notifyByChat(p.ownerId, p.ownerName,
+          'Enviei $what para ${p.petName}. Está em Meus Pets › Histórico Clínico.');
+    } catch (_) {}
+    return ref.id;
+  }
+
+  static Future<void> markPrescriptionSeen(String id) => prescriptions.doc(id).update({'seen': true});
+
+  static String newCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    final r = Random.secure();
+    String part() => List.generate(4, (_) => chars[r.nextInt(chars.length)]).join();
+    return 'MP-${part()}-${part()}';
+  }
+
+  // ---------- SOS / Emergências ----------
+  static List<Emergency> _sortEm(List<Emergency> l) =>
+      l..sort((a, b) => (b.createdAt ?? DateTime(2100)).compareTo(a.createdAt ?? DateTime(2100)));
+
+  static Stream<List<Emergency>> openEmergencies() => emergencies
+      .where('status', isEqualTo: 'aberto')
+      .snapshots()
+      .map((s) => _sortEm(s.docs.map(Emergency.fromDoc).toList()));
+
+  static Stream<List<Emergency>> emergenciesAcceptedByMe() => emergencies
+      .where('acceptedBy', isEqualTo: Session.uid)
+      .snapshots()
+      .map((s) => _sortEm(s.docs.map(Emergency.fromDoc).toList()));
+
+  static Stream<List<Emergency>> myEmergencies() => emergencies
+      .where('tutorId', isEqualTo: Session.uid)
+      .snapshots()
+      .map((s) => _sortEm(s.docs.map(Emergency.fromDoc).toList()));
+
+  static Future<String> createEmergency(Pet pet, String description) async {
+    final me = Session.user;
+    final ref = await emergencies.add({
+      'tutorId': me.id,
+      'tutorName': me.name,
+      'tutorPhone': me.phone,
+      'petId': pet.id,
+      'petName': pet.name,
+      'petSpecies': pet.species,
+      'petPhoto': pet.photo,
+      'description': description.trim(),
+      'city': me.city,
+      'status': 'aberto',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    return ref.id;
+  }
+
+  /// A primeira clínica que aceitar fica com o chamado.
+  static Future<bool> acceptEmergency(String id) {
+    final me = Session.user;
+    final ref = emergencies.doc(id);
+    return fs.runTransaction<bool>((tx) async {
+      final snap = await tx.get(ref);
+      if (snap.data()?['status'] != 'aberto') return false;
+      tx.update(ref, {
+        'status': 'aceito',
+        'acceptedBy': me.id,
+        'acceptedByName': me.displayName,
+        'acceptedByPhone': me.phone,
+        'acceptedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    });
+  }
+
+  static Future<void> setEmergencyStatus(String id, String status) => emergencies.doc(id).update({'status': status});
+
+  // ---------- Avaliações ----------
+  static Stream<Map<String, RatingInfo>> ratings() => reviews.snapshots().map((s) {
+        final sum = <String, int>{};
+        final cnt = <String, int>{};
+        for (final d in s.docs) {
+          final p = d.data()['providerId'] as String? ?? '';
+          final st = ((d.data()['stars'] as num?) ?? 0).toInt();
+          if (p.isEmpty || st <= 0) continue;
+          sum[p] = (sum[p] ?? 0) + st;
+          cnt[p] = (cnt[p] ?? 0) + 1;
+        }
+        return {for (final p in cnt.keys) p: RatingInfo(sum[p]! / cnt[p]!, cnt[p]!)};
+      });
+
+  static Stream<List<Review>> reviewsFor(String providerId) => reviews
+      .where('providerId', isEqualTo: providerId)
+      .snapshots()
+      .map((s) => s.docs.map(Review.fromDoc).toList()
+        ..sort((a, b) => (b.date ?? DateTime(1900)).compareTo(a.date ?? DateTime(1900))));
+
+  /// Só avalia quem já agendou com o prestador.
+  static Future<bool> canReview(String providerId) async {
+    final q = await appointments.where('tutorId', isEqualTo: Session.uid).get();
+    return q.docs.any((d) => d.data()['providerId'] == providerId && d.data()['status'] != 'recusado');
+  }
+
+  static Future<void> saveReview(String providerId, int stars, String text) {
+    final me = Session.user;
+    return reviews.doc('${providerId}_${me.id}').set({
+      'providerId': providerId,
+      'tutorId': me.id,
+      'tutorName': me.name,
+      'stars': stars,
+      'text': text.trim(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 }
 

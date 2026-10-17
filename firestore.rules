@@ -45,6 +45,47 @@ service cloud.firestore {
       allow update, delete: if signedIn() && resource.data.postedBy == me();
     }
 
+    // Receitas e pedidos de exame: o vet emite; o tutor dono do pet lê e marca como lida.
+    match /prescriptions/{id} {
+      allow read: if signedIn() && (resource.data.ownerId == me() || isProvider());
+      allow create: if isProvider() && request.resource.data.providerId == me();
+      allow update: if signedIn() && resource.data.ownerId == me()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seen']);
+      allow delete: if signedIn() && resource.data.providerId == me();
+    }
+
+    // SOS: tutor abre o chamado; clínicas veem os abertos e a primeira aceita.
+    match /emergencies/{id} {
+      allow read: if signedIn() && (resource.data.tutorId == me() || isProvider());
+      allow create: if signedIn() && request.resource.data.tutorId == me()
+        && request.resource.data.status == 'aberto';
+      allow update: if signedIn() && (
+        (resource.data.tutorId == me()
+          && request.resource.data.status in ['cancelado', 'encerrado']
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
+        || (isProvider() && resource.data.status == 'aberto'
+          && request.resource.data.status == 'aceito'
+          && request.resource.data.acceptedBy == me()
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'acceptedBy', 'acceptedByName', 'acceptedByPhone', 'acceptedAt']))
+        || (resource.data.acceptedBy == me()
+          && request.resource.data.status == 'encerrado'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
+      );
+      allow delete: if false;
+    }
+
+    // Avaliações: uma por tutor por prestador (id = prestador_tutor), 1 a 5 estrelas.
+    match /reviews/{id} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && request.resource.data.tutorId == me()
+        && id == request.resource.data.providerId + '_' + me()
+        && request.resource.data.stars is int
+        && request.resource.data.stars >= 1 && request.resource.data.stars <= 5;
+      allow delete: if signedIn() && resource.data.tutorId == me();
+    }
+
     // Chat: só participantes.
     match /chats/{chatId} {
       allow read: if signedIn() && (resource == null || me() in resource.data.participants);
