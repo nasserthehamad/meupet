@@ -209,7 +209,7 @@ class CarteirinhaTab extends StatelessWidget {
             Image.asset('assets/ui/barcode.png', height: 34, width: double.infinity, fit: BoxFit.fill),
             const SizedBox(height: 8),
             Row(children: [
-              Image.asset('assets/images/logo.png', height: 30),
+              Image.asset('assets/images/logo_mark.png', height: 30),
               const SizedBox(width: 6),
               const LogoText(size: 18),
               const Spacer(),
@@ -256,7 +256,7 @@ class CarteirinhaTab extends StatelessWidget {
                     TextSpan(text: 'PET', style: logoStyle(34, AppColors.orange)),
                   ])),
                   const SizedBox(width: 6),
-                  Image.asset('assets/images/logo.png', height: 28),
+                  Image.asset('assets/images/logo_mark.png', height: 28),
                 ]),
                 Transform.translate(
                   offset: const Offset(16, -6),

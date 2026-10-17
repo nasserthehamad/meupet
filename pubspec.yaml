@@ -73,6 +73,8 @@ flutter_launcher_icons:
   android: "launcher_icon"
   ios: false
   image_path: "assets/images/icon.png"
-  adaptive_icon_background: "#FFFFFF"
+  # Ícone sem fundo: só a casinha azul do logo oficial (fundo transparente).
+  adaptive_icon_background: "assets/images/icon_bg.png"
   adaptive_icon_foreground: "assets/images/icon_fg.png"
+  adaptive_icon_monochrome: "assets/images/icon_mono.png"
   min_sdk_android: 23
