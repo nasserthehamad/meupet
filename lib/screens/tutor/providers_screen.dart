@@ -318,7 +318,7 @@ class ProviderDetailScreen extends StatelessWidget {
                         Chip(
                           avatar: Icon(iconForService(c), size: 16, color: AppColors.teal),
                           label: Text(p.prices[c] == null ? c : '$c · ${fmtMoney(p.prices[c]!)}'),
-                          backgroundColor: Colors.white,
+                          backgroundColor: AppColors.surface,
                         ),
                     ]),
                   ),
@@ -631,7 +631,7 @@ class _BookingScreenState extends State<BookingScreen> {
                               PhotoAvatar(
                                 photo: p.photo,
                                 size: 64,
-                                border: _pet?.id == p.id ? AppColors.orange : Colors.white,
+                                border: _pet?.id == p.id ? AppColors.orange : AppColors.surface,
                               ),
                               const SizedBox(height: 4),
                               Text(p.name, style: TextStyle(fontWeight: _pet?.id == p.id ? FontWeight.w700 : FontWeight.w400)),

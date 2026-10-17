@@ -156,7 +156,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                     child: Padding(
                       padding: const EdgeInsets.only(right: 10),
                       child: Column(children: [
-                        PhotoAvatar(photo: p.photo, size: 62, border: _pet?.id == p.id ? AppColors.red : Colors.white),
+                        PhotoAvatar(photo: p.photo, size: 62, border: _pet?.id == p.id ? AppColors.red : AppColors.surface),
                         const SizedBox(height: 3),
                         Text(p.name,
                             style: TextStyle(
@@ -252,7 +252,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
           ],
           if (em.description.isNotEmpty) ...[
             const SizedBox(height: 10),
-            Text('“${em.description}”', style: const TextStyle(fontStyle: FontStyle.italic, color: Color(0xFF5B6366))),
+            Text('“${em.description}”', style: TextStyle(fontStyle: FontStyle.italic, color: AppColors.text2)),
           ],
           if (accepted) ...[
             const SizedBox(height: 12),
@@ -424,7 +424,7 @@ class _AlertHead extends StatelessWidget {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(e.petName, style: scriptStyle(24, color)),
           Text('${e.petSpecies.isEmpty ? '' : '${e.petSpecies} · '}Tutor: ${e.tutorName}',
-              style: const TextStyle(fontSize: 12.5, color: Color(0xFF5B6366))),
+              style: TextStyle(fontSize: 12.5, color: AppColors.text2)),
           Text([if (e.city.isNotEmpty) e.city, timeAgo(e.createdAt)].join(' · '),
               style: const TextStyle(fontSize: 12, color: AppColors.muted)),
         ]),

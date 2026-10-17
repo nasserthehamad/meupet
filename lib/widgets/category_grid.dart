@@ -61,7 +61,7 @@ class CategoryGrid extends StatelessWidget {
                         cat.name,
                         textAlign: TextAlign.center,
                         maxLines: 2,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF6B7477), height: 1.15),
+                        style: TextStyle(fontSize: 12, color: AppColors.text2, height: 1.15),
                       ),
                     ),
                   ]),

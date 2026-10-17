@@ -411,7 +411,7 @@ class _ProviderHomeState extends State<ProviderHome> {
         hintStyle: const TextStyle(color: AppColors.muted, fontSize: 14),
         suffixIcon: Icon(icon, color: AppColors.teal),
         filled: true,
-        fillColor: const Color(0xFFF2F3F3),
+        fillColor: AppColors.surface2,
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
@@ -428,9 +428,9 @@ class _ProviderHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final top = MediaQuery.of(context).padding.top;
     return ColoredBox(
-      color: Colors.white,
+      color: AppColors.surface,
       child: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.bg,
           borderRadius: BorderRadius.only(bottomLeft: Radius.circular(kBandRadius)),
         ),
@@ -455,7 +455,7 @@ class _ProviderHeader extends StatelessWidget {
                   _NewRideBadge(onTap: onNewRides),
                   const SizedBox(width: 6),
                 ],
-                PhotoAvatar(photo: user?.photo, size: 104, fallbackIcon: Icons.storefront_rounded, border: Colors.white),
+                PhotoAvatar(photo: user?.photo, size: 104, fallbackIcon: Icons.storefront_rounded, border: AppColors.surface),
               ]),
             ),
             if (hasEmergency24h(user))
@@ -484,7 +484,7 @@ class _EmergencyCard extends StatelessWidget {
         width: 74,
         padding: const EdgeInsets.fromLTRB(4, 8, 6, 8),
         decoration: BoxDecoration(
-          color: count > 0 ? const Color(0xFFFFF1F1) : Colors.white,
+          color: count > 0 ? AppColors.red.withValues(alpha: 0.1) : AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: count > 0 ? AppColors.red : const Color(0xFFF2B8BC), width: 2),
         ),
@@ -603,13 +603,13 @@ class _RideRequestTile extends StatelessWidget {
   const _RideRequestTile({required this.r});
   @override
   Widget build(BuildContext context) {
-    const st = TextStyle(fontSize: 12, color: Color(0xFF6B7477), height: 1.25);
+    final st = TextStyle(fontSize: 12, color: AppColors.text2, height: 1.25);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(children: [
         DateBadge(r.when, big: true),
         const SizedBox(width: 6),
-        PhotoAvatar(photo: r.petPhoto, size: 44, border: Colors.white),
+        PhotoAvatar(photo: r.petPhoto, size: 44, border: AppColors.surface),
         const SizedBox(width: 8),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -666,7 +666,7 @@ class _Pager extends StatelessWidget {
             width: 30,
             height: 30,
             alignment: Alignment.center,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: i == page ? AppColors.muted : Colors.white),
+            decoration: BoxDecoration(shape: BoxShape.circle, color: i == page ? AppColors.muted : AppColors.surface),
             child: Text('${i + 1}',
                 style: TextStyle(fontWeight: FontWeight.w700, color: i == page ? Colors.white : AppColors.muted)),
           ),
@@ -709,7 +709,7 @@ class _ApptText extends StatelessWidget {
   const _ApptText({required this.a, this.showObs = true});
   @override
   Widget build(BuildContext context) {
-    const st = TextStyle(fontSize: 12, color: Color(0xFF6B7477), height: 1.25);
+    final st = TextStyle(fontSize: 12, color: AppColors.text2, height: 1.25);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(fmtTime(a.dateTime), style: st.copyWith(fontWeight: FontWeight.w600, color: AppColors.text)),
       Text('Nome: ${a.petName}', style: st, maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -750,7 +750,7 @@ class _AtendimentoTile extends StatelessWidget {
         child: Row(children: [
           DateBadge(a.dateTime, big: true),
           const SizedBox(width: 6),
-          PhotoAvatar(photo: a.petPhoto, size: 46, border: Colors.white),
+          PhotoAvatar(photo: a.petPhoto, size: 46, border: AppColors.surface),
           const SizedBox(width: 8),
           Expanded(child: _ApptText(a: a)),
           if (canPrescribe(Session.current.value))
@@ -778,7 +778,7 @@ class _PedidoTile extends StatelessWidget {
       child: Row(children: [
         DateBadge(a.dateTime, big: true),
         const SizedBox(width: 6),
-        PhotoAvatar(photo: a.petPhoto, size: 44, border: Colors.white),
+        PhotoAvatar(photo: a.petPhoto, size: 44, border: AppColors.surface),
         const SizedBox(width: 8),
         Expanded(child: _ApptText(a: a, showObs: false)),
         InkWell(

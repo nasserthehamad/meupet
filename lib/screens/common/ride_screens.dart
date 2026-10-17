@@ -110,7 +110,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
                           child: Padding(
                             padding: const EdgeInsets.only(right: 10),
                             child: Column(children: [
-                              PhotoAvatar(photo: p.photo, size: 62, border: _pet?.id == p.id ? AppColors.orange : Colors.white),
+                              PhotoAvatar(photo: p.photo, size: 62, border: _pet?.id == p.id ? AppColors.orange : AppColors.surface),
                               const SizedBox(height: 3),
                               Text(p.name, style: TextStyle(fontWeight: _pet?.id == p.id ? FontWeight.w700 : FontWeight.w400)),
                             ]),
@@ -381,8 +381,8 @@ class RideTimeline extends StatelessWidget {
                     ? AppColors.teal
                     : i == cur
                         ? kTaxiYellow
-                        : Colors.white,
-                border: Border.all(color: i <= cur ? Colors.transparent : const Color(0xFFCBD1D3), width: 2),
+                        : AppColors.surface,
+                border: Border.all(color: i <= cur ? Colors.transparent : AppColors.line, width: 2),
               ),
               child: i < cur
                   ? const Icon(Icons.check_rounded, color: Colors.white, size: 18)
@@ -391,7 +391,7 @@ class RideTimeline extends StatelessWidget {
                       : null,
             ),
             if (i < Ride.flow.length - 1)
-              Container(width: 3, height: 22, color: i < cur ? AppColors.teal : const Color(0xFFDDE1E2)),
+              Container(width: 3, height: 22, color: i < cur ? AppColors.teal : AppColors.line),
           ]),
           const SizedBox(width: 12),
           Padding(
@@ -400,7 +400,7 @@ class RideTimeline extends StatelessWidget {
               _labels[Ride.flow[i]]!,
               style: TextStyle(
                 fontWeight: i == cur ? FontWeight.w800 : FontWeight.w500,
-                color: i <= cur ? const Color(0xFF3E4446) : AppColors.muted,
+                color: i <= cur ? AppColors.textStrong : AppColors.muted,
                 fontSize: i == cur ? 16 : 14,
               ),
             ),
@@ -417,7 +417,7 @@ class RideTile extends StatelessWidget {
   const RideTile({super.key, required this.r, this.driverView = false});
   @override
   Widget build(BuildContext context) {
-    const st = TextStyle(fontSize: 12, color: Color(0xFF6B7477), height: 1.25);
+    final st = TextStyle(fontSize: 12, color: AppColors.text2, height: 1.25);
     return InkWell(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => RideScreen(rideId: r.id))),
       child: Padding(
@@ -425,7 +425,7 @@ class RideTile extends StatelessWidget {
         child: Row(children: [
           DateBadge(r.when, big: true),
           const SizedBox(width: 6),
-          PhotoAvatar(photo: r.petPhoto, size: 46, border: Colors.white),
+          PhotoAvatar(photo: r.petPhoto, size: 46, border: AppColors.surface),
           const SizedBox(width: 8),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

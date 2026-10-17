@@ -42,7 +42,7 @@ class _ProviderShellState extends State<ProviderShell> {
     final m = ScaffoldMessenger.of(context);
     m.clearMaterialBanners();
     m.showMaterialBanner(MaterialBanner(
-      backgroundColor: const Color(0xFFFFF1F1),
+      backgroundColor: AppColors.dark ? const Color(0xFF3A2124) : const Color(0xFFFFF1F1),
       leading: Image.asset('assets/ui/sos.gif', width: 40),
       content: Text(
         fresh.length > 1

@@ -8,6 +8,7 @@ import 'core/db.dart';
 import 'core/models.dart';
 import 'core/push.dart';
 import 'core/theme.dart';
+import 'core/theme_controller.dart';
 import 'firebase_options.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/common/chat_screen.dart';
@@ -24,6 +25,7 @@ Future<void> main() async {
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   Push.onOpen = _openFromPush;
+  await ThemeController.load();
   runApp(const MeuPetApp());
 }
 
@@ -48,17 +50,68 @@ void _openFromPush(Map<String, dynamic> d) {
   if (page != null) nav.push(MaterialPageRoute(builder: (_) => page!));
 }
 
-class MeuPetApp extends StatelessWidget {
+class MeuPetApp extends StatefulWidget {
   const MeuPetApp({super.key});
 
   @override
+  State<MeuPetApp> createState() => _MeuPetAppState();
+}
+
+class _MeuPetAppState extends State<MeuPetApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    ThemeController.mode.addListener(_apply);
+    AppColors.dark = _wantsDark();
+  }
+
+  @override
+  void dispose() {
+    ThemeController.mode.removeListener(_apply);
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  // "Igual ao celular": acompanha quando o Android troca de claro/escuro.
+  @override
+  void didChangePlatformBrightness() {
+    if (ThemeController.mode.value == ThemeMode.system) _apply();
+  }
+
+  bool _wantsDark() => switch (ThemeController.mode.value) {
+        ThemeMode.dark => true,
+        ThemeMode.light => false,
+        ThemeMode.system => WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark,
+      };
+
+  /// Troca as cores e redesenha todas as telas abertas, sem perder onde o
+  /// usuário está.
+  void _apply() {
+    final dark = _wantsDark();
+    if (dark == AppColors.dark) return;
+    AppColors.dark = dark;
+    void mark(Element e) {
+      e.markNeedsBuild();
+      e.visitChildren(mark);
+    }
+
+    if (mounted) {
+      (context as Element).visitChildren(mark);
+      setState(() {});
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final dark = AppColors.dark;
     return MaterialApp(
       title: 'Meu Pet+',
       debugShowCheckedModeBanner: false,
       navigatorKey: Push.navigatorKey,
       scaffoldMessengerKey: Push.messengerKey,
-      theme: buildTheme(),
+      theme: buildTheme(dark: dark),
+      themeAnimationDuration: Duration.zero,
       locale: const Locale('pt', 'BR'),
       supportedLocales: const [Locale('pt', 'BR')],
       localizationsDelegates: const [
@@ -66,6 +119,16 @@ class MeuPetApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: dark ? Brightness.light : Brightness.dark,
+          statusBarBrightness: dark ? Brightness.dark : Brightness.light,
+          systemNavigationBarColor: AppColors.surface,
+          systemNavigationBarIconBrightness: dark ? Brightness.light : Brightness.dark,
+        ),
+        child: child!,
+      ),
       home: const AuthGate(),
     );
   }
@@ -107,7 +170,7 @@ class SplashView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       body: Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Image.asset('assets/images/logo.png', width: 140),

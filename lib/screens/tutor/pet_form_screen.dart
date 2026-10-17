@@ -157,8 +157,8 @@ class _PetFormScreenState extends State<PetFormScreen> {
     final sel = _sex == v;
     return OutlinedButton.icon(
       style: OutlinedButton.styleFrom(
-        backgroundColor: sel ? c.withValues(alpha: 0.12) : Colors.white,
-        side: BorderSide(color: sel ? c : const Color(0xFFDADFE1)),
+        backgroundColor: sel ? c.withValues(alpha: 0.12) : AppColors.surface,
+        side: BorderSide(color: sel ? c : AppColors.line),
         minimumSize: const Size.fromHeight(46),
       ),
       onPressed: () => setState(() => _sex = v),

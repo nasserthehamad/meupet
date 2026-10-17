@@ -67,7 +67,7 @@ class _AdoptionScreenState extends State<AdoptionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFDCDCDC),
+      backgroundColor: AppColors.homeBg,
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.purple,
         foregroundColor: Colors.white,
@@ -272,7 +272,7 @@ class _AdoptCell extends StatelessWidget {
         GestureDetector(
           onTap: onTap,
           child: Stack(children: [
-            PhotoAvatar(photo: a.photo, size: size, border: Colors.white),
+            PhotoAvatar(photo: a.photo, size: size, border: AppColors.surface),
             Positioned(
               right: size * 0.06,
               top: size * 0.32,

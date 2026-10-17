@@ -285,9 +285,9 @@ Future<FakeFirebaseFirestore> seed() async {
   return db;
 }
 
-Widget app(Widget home) => MaterialApp(
+Widget app(Widget home, {bool dark = false}) => MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: buildTheme(),
+      theme: buildTheme(dark: dark),
       locale: const Locale('pt', 'BR'),
       supportedLocales: const [Locale('pt', 'BR')],
       localizationsDelegates: const [
@@ -331,15 +331,17 @@ Future<void> settle(WidgetTester t) async {
   await t.pump(const Duration(milliseconds: 400));
 }
 
-Future<void> shot(WidgetTester t, String name, Widget Function() home, {String? as, Future<void> Function(WidgetTester)? act}) async {
+Future<void> shot(WidgetTester t, String name, Widget Function() home,
+    {String? as, Future<void> Function(WidgetTester)? act, bool dark = false}) async {
   debugDisableShadows = false;
+  AppColors.dark = dark;
   t.view.physicalSize = const Size(1080, 2340);
   t.view.devicePixelRatio = 2.75;
   t.view.padding = const FakeViewPadding(top: 66);
   clearUserCache();
   Db.fs = await t.runAsync(seed) as FirebaseFirestore;
   Session.current.value = {'vet': vet, 'tutor': tutor, 'taxi': taxi, 'shop': shop}[as];
-  await t.pumpWidget(app(home()));
+  await t.pumpWidget(app(home(), dark: dark));
   await settle(t);
   if (act != null) {
     await act(t);
@@ -349,6 +351,7 @@ Future<void> shot(WidgetTester t, String name, Widget Function() home, {String? 
   await t.pumpWidget(const SizedBox());
   await t.pump(const Duration(seconds: 1));
   t.view.reset();
+  AppColors.dark = false;
   debugDisableShadows = true;
 }
 
@@ -423,4 +426,25 @@ void main() {
       act: (t) async => t.tap(find.text('Info. do pet'))));
   testWidgets('40 chat anexos', (t) => shot(t, '40_chat_anexos',
       () => ChatScreen(chatId: Db.chatIdFor('tutor1', 'shop1'), otherName: 'Mania de Bicho', otherId: 'shop1'), as: 'tutor'));
+
+  // Tema | Modo e modo escuro
+  Future<void> menuTema(WidgetTester t) async {
+    await tapKey('menu')(t);
+    await settle(t);
+    await tapKey('tema')(t);
+  }
+
+  testWidgets('41 tema', (t) => shot(t, '41_tema_modo', () => const TutorShell(), as: 'tutor', act: menuTema));
+  testWidgets('42 escuro inicio', (t) => shot(t, '42_escuro_inicio', () => const TutorShell(), as: 'tutor', dark: true));
+  testWidgets('43 escuro menu', (t) => shot(t, '43_escuro_menu', () => const TutorShell(), as: 'tutor', dark: true, act: tapKey('menu')));
+  testWidgets('44 escuro meus pets', (t) => shot(t, '44_escuro_meus_pets', () => const MyPetsScreen(), as: 'tutor', dark: true));
+  testWidgets('45 escuro carteirinha', (t) => shot(t, '45_escuro_carteirinha', () => const CarteirinhaScreen(petId: 'zuka'), as: 'tutor', dark: true));
+  testWidgets('46 escuro historico', (t) => shot(t, '46_escuro_historico', () => const HistoricoScreen(petId: 'athos'), as: 'tutor', dark: true));
+  testWidgets('47 escuro chat', (t) => shot(t, '47_escuro_chat',
+      () => ChatScreen(chatId: Db.chatIdFor('tutor1', 'vet1'), otherName: 'Vet Amicão', otherId: 'vet1'), as: 'tutor', dark: true));
+  testWidgets('48 escuro prestador', (t) => shot(t, '48_escuro_prestador', () => const ProviderShell(), as: 'vet', dark: true));
+  testWidgets('49 escuro detalhe', (t) => shot(t, '49_escuro_prestador_detalhe', () => ProviderDetailScreen(provider: vet), as: 'tutor', dark: true));
+  testWidgets('50 escuro loja', (t) => shot(t, '50_escuro_loja', () => StoreScreen(store: shop), as: 'tutor', dark: true));
+  testWidgets('51 escuro corrida', (t) => shot(t, '51_escuro_corrida', () => RideScreen(rideId: rideId), as: 'tutor', dark: true));
+  testWidgets('52 escuro animais', (t) => shot(t, '52_escuro_animais', () => const AnimalsScreen(), as: 'tutor', dark: true));
 }

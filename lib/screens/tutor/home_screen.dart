@@ -11,7 +11,6 @@ import 'animal_screen.dart';
 import 'average_cost_screen.dart';
 import 'providers_screen.dart';
 
-const _homeBg = Color(0xFFDCDCDC);
 
 /// Início do tutor: "+VIDA" e o carrossel +SAÚDE / +CUIDADO / +PRODUTO,
 /// que se arrasta para o lado (como nos vídeos do protótipo).
@@ -41,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
       TopBar(onBell: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AgendaScreen()))),
       Expanded(
         child: ColoredBox(
-          color: _homeBg,
+          color: AppColors.homeBg,
           child: Column(children: [
             Expanded(
               child: PageView(
@@ -295,7 +294,7 @@ class _VidaPage extends StatelessWidget {
                     child: Container(
                       margin: const EdgeInsets.symmetric(horizontal: 5),
                       padding: const EdgeInsets.fromLTRB(6, 10, 6, 12),
-                      decoration: BoxDecoration(color: const Color(0xFFEEEEEE), borderRadius: BorderRadius.circular(16)),
+                      decoration: BoxDecoration(color: AppColors.homeCard, borderRadius: BorderRadius.circular(16)),
                       child: Column(children: [
                         Text(serviceGroups[i].title,
                             style: const TextStyle(color: AppColors.orange, fontSize: 16, fontWeight: FontWeight.w500)),

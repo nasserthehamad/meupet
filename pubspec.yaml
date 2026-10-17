@@ -25,6 +25,7 @@ dependencies:
   record: any
   path_provider: any
   audioplayers: any
+  shared_preferences: any
 
 dev_dependencies:
   flutter_test:

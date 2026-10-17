@@ -213,7 +213,7 @@ class _PaperAction extends StatelessWidget {
             height: 42,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: filled && enabled ? c : Colors.white,
+              color: filled && enabled ? c : AppColors.surface,
               border: Border.all(color: c, width: 2),
             ),
             child: Icon(icon, color: filled && enabled ? Colors.white : c, size: 22),
@@ -684,7 +684,7 @@ class PrescriptionRow extends StatelessWidget {
           const SizedBox(width: 8),
           FutureBuilder<AppUser?>(
             future: cachedUser(p.providerId),
-            builder: (_, s) => PhotoAvatar(photo: s.data?.photo, size: 38, fallbackIcon: Icons.local_hospital_rounded, border: Colors.white),
+            builder: (_, s) => PhotoAvatar(photo: s.data?.photo, size: 38, fallbackIcon: Icons.local_hospital_rounded, border: AppColors.surface),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -779,7 +779,7 @@ class VetRxButton extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: filled ? AppColors.orange : Colors.white,
+              color: filled ? AppColors.orange : AppColors.surface,
               border: filled ? null : Border.all(color: AppColors.teal, width: 2),
             ),
             child: Icon(icon, color: filled ? Colors.white : AppColors.teal, size: 22),

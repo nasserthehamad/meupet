@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../core/catalog.dart';
 import '../core/db.dart';
 import '../core/theme.dart';
+import '../core/theme_controller.dart';
 import '../screens/common/chat_list_screen.dart';
 import '../screens/common/emergency_screen.dart';
 import '../screens/common/profile_screen.dart';
@@ -65,6 +66,38 @@ class AppDrawer extends StatelessWidget {
     );
   }
 
+  Future<void> _theme(BuildContext context) async {
+    context = _close(context);
+    final picked = await showDialog<ThemeMode>(
+      context: context,
+      builder: (c) {
+        final cur = ThemeController.mode.value;
+        Widget opt(ThemeMode m, IconData icon, String sub) => ListTile(
+              key: Key('tema_${m.name}'),
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(icon, color: AppColors.teal),
+              title: Text(ThemeController.label(m)),
+              subtitle: Text(sub, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+              trailing: Icon(
+                m == cur ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+                color: m == cur ? AppColors.teal : AppColors.muted,
+              ),
+              onTap: () => Navigator.pop(c, m),
+            );
+        return AlertDialog(
+          title: const Text('Tema | Modo'),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            opt(ThemeMode.light, Icons.light_mode_rounded, 'Fundo claro'),
+            opt(ThemeMode.dark, Icons.dark_mode_rounded, 'Fundo escuro, descansa a vista'),
+            opt(ThemeMode.system, Icons.brightness_auto_rounded, 'Segue o modo do seu celular'),
+          ]),
+          actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancelar'))],
+        );
+      },
+    );
+    if (picked != null) await ThemeController.set(picked);
+  }
+
   Future<void> _rate(BuildContext context) async {
     context = _close(context);
     int stars = 5;
@@ -118,7 +151,7 @@ class AppDrawer extends StatelessWidget {
     final top = MediaQuery.of(context).padding.top;
     return Drawer(
       width: MediaQuery.of(context).size.width * 0.82,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(),
       child: Stack(children: [
         Positioned(
@@ -229,16 +262,17 @@ class AppDrawer extends StatelessWidget {
             ),
             _Item(color: AppColors.yellow, icon: Icons.language_rounded, label: 'Idioma', onTap: () => _language(context)),
             _Item(
-              color: const Color(0xFF2F3A3D),
+              key: const Key('tema'),
+              color: AppColors.dark ? const Color(0xFF5B6366) : const Color(0xFF2F3A3D),
               icon: Icons.contrast_rounded,
               label: 'Tema | Modo',
-              sub: 'Escuro & Claro',
-              onTap: () => showSnack(_close(context), 'O tema escuro chega numa próxima versão.'),
+              sub: ThemeController.label(ThemeController.mode.value),
+              onTap: () => _theme(context),
             ),
             const _Divider(),
             const _Section('Conta'),
             _Item(
-              color: Colors.white,
+              color: AppColors.surface,
               outlined: true,
               icon: Icons.add_rounded,
               label: prov ? 'Adicionar Serviços' : 'Adicionar Pet',
@@ -301,7 +335,7 @@ class _Divider extends StatelessWidget {
   const _Divider();
   @override
   Widget build(BuildContext context) =>
-      const Padding(padding: EdgeInsets.fromLTRB(20, 8, _strip + 16, 4), child: Divider(height: 1, color: Color(0xFFE6E8E9)));
+      Padding(padding: EdgeInsets.fromLTRB(20, 8, _strip + 16, 4), child: Divider(height: 1, color: AppColors.line));
 }
 
 class _Item extends StatelessWidget {
@@ -311,7 +345,7 @@ class _Item extends StatelessWidget {
   final String? sub;
   final bool outlined;
   final VoidCallback onTap;
-  const _Item({required this.color, required this.icon, required this.label, required this.onTap, this.sub, this.outlined = false});
+  const _Item({super.key, required this.color, required this.icon, required this.label, required this.onTap, this.sub, this.outlined = false});
 
   @override
   Widget build(BuildContext context) {

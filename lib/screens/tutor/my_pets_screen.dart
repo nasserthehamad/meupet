@@ -44,7 +44,7 @@ class _MyPetsScreenState extends State<MyPetsScreen> {
                         hintStyle: const TextStyle(color: AppColors.muted),
                         suffixIcon: const Icon(Icons.search_rounded, color: AppColors.teal),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: AppColors.surface,
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
@@ -121,13 +121,13 @@ class _PetCell extends StatelessWidget {
         GestureDetector(
           onTap: () => _open(context, 0),
           child: Stack(alignment: Alignment.bottomCenter, children: [
-            PhotoAvatar(photo: pet.photo, size: 104, border: Colors.white),
+            PhotoAvatar(photo: pet.photo, size: 104, border: AppColors.surface),
             Padding(
               padding: const EdgeInsets.only(bottom: 2),
               child: Text(
                 pet.name,
                 style: scriptStyle(19, AppColors.teal).copyWith(
-                  shadows: const [Shadow(color: Colors.white, blurRadius: 6), Shadow(color: Colors.white, blurRadius: 3)],
+                  shadows: [Shadow(color: AppColors.surface, blurRadius: 6), Shadow(color: AppColors.surface, blurRadius: 3)],
                 ),
               ),
             ),
@@ -192,13 +192,13 @@ class _UpcomingTile extends StatelessWidget {
       child: Row(children: [
         DateBadge(a.dateTime, big: true),
         const SizedBox(width: 8),
-        PhotoAvatar(photo: a.petPhoto, size: 46, border: Colors.white),
+        PhotoAvatar(photo: a.petPhoto, size: 46, border: AppColors.surface),
         const SizedBox(width: 10),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(a.petName, style: const TextStyle(fontSize: 14, color: Color(0xFF6B7477), fontWeight: FontWeight.w600)),
+            Text(a.petName, style: TextStyle(fontSize: 14, color: AppColors.text2, fontWeight: FontWeight.w600)),
             Text('${a.service}${a.taxiPet ? ' + Taxipet' : ''}',
-                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7477)), maxLines: 1, overflow: TextOverflow.ellipsis),
+                style: TextStyle(fontSize: 13, color: AppColors.text2), maxLines: 1, overflow: TextOverflow.ellipsis),
             Text('${fmtTime(a.dateTime)} · ${a.providerName}', style: const TextStyle(fontSize: 11, color: AppColors.muted)),
             const SizedBox(height: 2),
             StatusChip(a.status),

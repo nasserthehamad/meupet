@@ -22,7 +22,7 @@ class ProductPhoto extends StatelessWidget {
     final fallback = Container(
       width: size,
       height: size,
-      color: const Color(0xFFEFF3F3),
+      color: AppColors.surface2,
       child: Icon(Icons.inventory_2_rounded, color: kProdutoColor.withValues(alpha: 0.6), size: size * 0.45),
     );
     return ClipRRect(
@@ -408,13 +408,13 @@ class OrderScreen extends StatelessWidget {
                             child: Row(children: [
                               Icon(
                                 i < cur ? Icons.check_circle_rounded : (i == cur ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded),
-                                color: i <= cur ? kProdutoColor : const Color(0xFFCBD1D3),
+                                color: i <= cur ? kProdutoColor : AppColors.line,
                               ),
                               const SizedBox(width: 10),
                               Text(_labels[_flow[i]]!,
                                   style: TextStyle(
                                     fontWeight: i == cur ? FontWeight.w800 : FontWeight.w500,
-                                    color: i <= cur ? const Color(0xFF3E4446) : AppColors.muted,
+                                    color: i <= cur ? AppColors.textStrong : AppColors.muted,
                                   )),
                             ]),
                           ),
@@ -578,7 +578,7 @@ class OrderTile extends StatelessWidget {
   const OrderTile({super.key, required this.o, this.storeView = false, this.actions = const []});
   @override
   Widget build(BuildContext context) {
-    const st = TextStyle(fontSize: 12, color: Color(0xFF6B7477), height: 1.25);
+    final st = TextStyle(fontSize: 12, color: AppColors.text2, height: 1.25);
     return InkWell(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderScreen(orderId: o.id))),
       child: Padding(
@@ -587,8 +587,8 @@ class OrderTile extends StatelessWidget {
           DateBadge(o.pickupDate ?? o.createdAt, big: true),
           const SizedBox(width: 6),
           storeView
-              ? PhotoAvatar(photo: o.tutorPhoto, size: 46, border: Colors.white, fallbackIcon: Icons.person_rounded)
-              : const CircleAvatar(radius: 23, backgroundColor: Colors.white, child: Icon(Icons.shopping_bag_rounded, color: kProdutoColor)),
+              ? PhotoAvatar(photo: o.tutorPhoto, size: 46, border: AppColors.surface, fallbackIcon: Icons.person_rounded)
+              : CircleAvatar(radius: 23, backgroundColor: AppColors.surface, child: const Icon(Icons.shopping_bag_rounded, color: kProdutoColor)),
           const SizedBox(width: 8),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

@@ -64,9 +64,9 @@ class _SignupScreenState extends State<SignupScreen> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: sel ? AppColors.teal : Colors.white,
+            color: sel ? AppColors.teal : AppColors.surface,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: sel ? AppColors.teal : const Color(0xFFDADFE1)),
+            border: Border.all(color: sel ? AppColors.teal : AppColors.line),
           ),
           child: Column(children: [
             Icon(icon, size: 34, color: sel ? Colors.white : AppColors.teal),

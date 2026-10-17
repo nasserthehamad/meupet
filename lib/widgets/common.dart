@@ -108,7 +108,7 @@ class TopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final top = MediaQuery.of(context).padding.top;
     return Container(
-      color: Colors.white,
+      color: AppColors.surface,
       padding: EdgeInsets.fromLTRB(14, top + 8, 14, 10),
       child: Stack(clipBehavior: Clip.none, children: [
         Positioned(
@@ -119,7 +119,7 @@ class TopBar extends StatelessWidget {
           child: IgnorePointer(child: PawTrail(color: AppColors.muted.withValues(alpha: 0.6), small: true)),
         ),
         Row(children: [
-          if (showBack) const _BackCircle(background: Color(0xFFEDEFF0)) else MenuButton(color: color),
+          if (showBack) _BackCircle(background: AppColors.surface2) else MenuButton(color: color),
           const Expanded(child: Center(child: LogoText(size: 30))),
           BellButton(color: color, onTap: onBell),
         ]),
@@ -165,8 +165,8 @@ class PetHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.of(context).padding.top;
-    final color = white ? Colors.white : AppColors.bg;
-    final outer = white ? AppColors.bg : Colors.white;
+    final color = white ? AppColors.surface : AppColors.bg;
+    final outer = white ? AppColors.bg : AppColors.surface;
     const r = Radius.circular(kBandRadius);
     return ColoredBox(
       color: outer,
@@ -184,7 +184,7 @@ class PetHeader extends StatelessWidget {
               bottom: 0,
               width: 40,
               child: IgnorePointer(
-                child: PawTrail(color: white ? AppColors.muted.withValues(alpha: 0.45) : Colors.white),
+                child: PawTrail(color: white ? AppColors.muted.withValues(alpha: 0.45) : AppColors.surface),
               ),
             ),
             Column(
@@ -195,7 +195,7 @@ class PetHeader extends StatelessWidget {
                     Column(mainAxisSize: MainAxisSize.min, children: [
                       if (showMenu) const MenuButton(),
                       if (showMenu && showBack) const SizedBox(height: 8),
-                      if (showBack) _BackCircle(background: white ? const Color(0xFFEDEFF0) : Colors.white),
+                      if (showBack) _BackCircle(background: white ? AppColors.surface2 : AppColors.surface),
                       if (!showMenu && !showBack) const SizedBox(width: 6),
                     ]),
                     const SizedBox(width: 38),
@@ -210,7 +210,7 @@ class PetHeader extends StatelessWidget {
                               textAlign: TextAlign.center,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: scriptStyle(24, const Color(0xFF3E4446)),
+                              style: scriptStyle(24, AppColors.textStrong),
                             ),
                           if (subtitle != null)
                             Padding(
@@ -229,14 +229,14 @@ class PetHeader extends StatelessWidget {
                             photo: photo,
                             size: 92,
                             fallbackIcon: fallbackIcon,
-                            border: white ? AppColors.bg : Colors.white,
+                            border: white ? AppColors.bg : AppColors.surface,
                           ),
                           if (avatarLabel != null)
                             Padding(
                               padding: const EdgeInsets.only(bottom: 4),
                               child: Text(avatarLabel!,
                                   style: scriptStyle(18, AppColors.teal).copyWith(
-                                    shadows: const [Shadow(color: Colors.white, blurRadius: 6)],
+                                    shadows: [Shadow(color: AppColors.surface, blurRadius: 6)],
                                   )),
                             ),
                         ]),
@@ -342,12 +342,12 @@ class SnakeBand extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const r = Radius.circular(kBandRadius);
-    final color = isWhite ? Colors.white : AppColors.bg;
+    final color = isWhite ? AppColors.surface : AppColors.bg;
     final radius = isWhite
         ? BorderRadius.only(topRight: roundTop ? r : Radius.zero, bottomRight: roundBottom ? r : Radius.zero)
         : BorderRadius.only(topLeft: roundTop ? r : Radius.zero, bottomLeft: roundBottom ? r : Radius.zero);
     return ColoredBox(
-      color: isWhite ? AppColors.bg : Colors.white,
+      color: isWhite ? AppColors.bg : AppColors.surface,
       child: Container(
         decoration: BoxDecoration(color: color, borderRadius: radius),
         padding: padding,
@@ -380,7 +380,7 @@ class PhotoAvatar extends StatelessWidget {
       decoration: BoxDecoration(shape: BoxShape.circle, color: border),
       child: ClipOval(
         child: ColoredBox(
-          color: const Color(0xFFE3F2F4),
+          color: AppColors.dark ? const Color(0xFF1F3A3E) : const Color(0xFFE3F2F4),
           child: SizedBox.expand(
             child: bytes != null
                 ? Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true)
@@ -480,7 +480,7 @@ class WhiteBlock extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
-    final onWhite = BandScope.of(context) == Colors.white;
+    final onWhite = BandScope.of(context) == AppColors.surface;
     return Container(
       margin: margin,
       decoration: BoxDecoration(
@@ -490,7 +490,7 @@ class WhiteBlock extends StatelessWidget {
             : [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
       ),
       child: Material(
-        color: onWhite ? const Color(0xFFF1F4F4) : Colors.white,
+        color: onWhite ? AppColors.surface2 : AppColors.surface,
         borderRadius: BorderRadius.circular(22),
         clipBehavior: Clip.antiAlias,
         child: Padding(padding: padding, child: child),
@@ -611,7 +611,7 @@ class DateBadge extends StatelessWidget {
         Padding(
           padding: EdgeInsets.symmetric(vertical: big ? 7 : 4),
           child: Text(fmtShort(date),
-              style: TextStyle(fontSize: big ? 15 : 12, fontWeight: FontWeight.w600, color: const Color(0xFF6B7477))),
+              style: TextStyle(fontSize: big ? 15 : 12, fontWeight: FontWeight.w600, color: AppColors.text2)),
         ),
       ]),
     );

@@ -23,7 +23,7 @@ class AnimalsScreen extends StatelessWidget {
     final avatar = (cardW * 0.62).clamp(52.0, 84.0);
     final cardH = avatar + 12 + 12 + 8 + 24;
     return Scaffold(
-      backgroundColor: const Color(0xFFDCDCDC),
+      backgroundColor: AppColors.homeBg,
       body: Column(children: [
         TopBar(
           showBack: true,

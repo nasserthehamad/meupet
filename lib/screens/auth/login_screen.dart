@@ -58,7 +58,10 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
-    return Scaffold(
+    // A entrada é sempre clara, como no protótipo (vídeo e campos azuis).
+    return Theme(
+      data: buildTheme(),
+      child: Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: Column(
@@ -131,6 +134,6 @@ class _LoginScreenState extends State<LoginScreen> {
           ],
         ),
       ),
-    );
+    ));
   }
 }

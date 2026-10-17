@@ -272,6 +272,7 @@ class CarteirinhaTab extends StatelessWidget {
                     onTap: () => showDialog(
                       context: context,
                       builder: (_) => Dialog(
+                        backgroundColor: Colors.white,
                         child: Padding(
                           padding: const EdgeInsets.all(20),
                           child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -335,7 +336,7 @@ class CarteirinhaTab extends StatelessWidget {
   Widget _field(String label, String value) => Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+          Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.5, color: Color(0xFF2F3A3D))),
           Container(
             width: double.infinity,
             margin: const EdgeInsets.only(top: 2),
@@ -1077,7 +1078,7 @@ class _IntervalCell extends StatelessWidget {
         clock
             ? const Padding(
                 padding: EdgeInsets.only(top: 3),
-                child: CircleAvatar(radius: 10, backgroundColor: Colors.white, child: Icon(Icons.schedule_rounded, size: 16, color: AppColors.text)),
+                child: CircleAvatar(radius: 10, backgroundColor: Colors.white, child: Icon(Icons.schedule_rounded, size: 16, color: Color(0xFF2F3A3D))),
               )
             : Text(fmtShort(to), style: const TextStyle(color: Colors.white70, fontSize: 10)),
     ]);
@@ -1169,7 +1170,7 @@ class _BigRoundButton extends StatelessWidget {
           height: 62,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: outlined ? Colors.white : color,
+            color: outlined ? AppColors.surface : color,
             border: Border.all(color: color, width: 3),
           ),
           child: Icon(icon, color: outlined ? color : Colors.white, size: 30),

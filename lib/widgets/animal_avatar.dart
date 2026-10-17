@@ -89,7 +89,7 @@ class AnimalCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFFEEEEEE),
+      color: AppColors.homeCard,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         key: Key('animal_${animal.$2}'),
@@ -103,7 +103,7 @@ class AnimalCard extends StatelessWidget {
             Text(animal.$1,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 15, color: Color(0xFF6B7477))),
+                style: TextStyle(fontSize: 15, color: AppColors.text2)),
           ]),
         ),
       ),

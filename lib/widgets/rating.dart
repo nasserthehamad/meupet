@@ -43,7 +43,7 @@ class RatingLine extends StatelessWidget {
       Stars(r!.avg, size: size),
       const SizedBox(width: 4),
       Text('${r!.label} (${r!.count})',
-          style: TextStyle(fontSize: size - 2, fontWeight: FontWeight.w600, color: const Color(0xFF5B6366))),
+          style: TextStyle(fontSize: size - 2, fontWeight: FontWeight.w600, color: AppColors.text2)),
     ]);
   }
 }

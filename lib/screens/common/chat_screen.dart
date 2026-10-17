@@ -210,7 +210,7 @@ class _ChatScreenState extends State<ChatScreen> {
           padding: EdgeInsets.fromLTRB(12, top + 8, 12, 10),
           child: Row(children: [
             Material(
-              color: Colors.white,
+              color: AppColors.surface,
               shape: const CircleBorder(),
               child: InkWell(
                 customBorder: const CircleBorder(),
@@ -219,7 +219,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
             const SizedBox(width: 10),
-            PhotoAvatar(photo: otherPhoto, size: 40, fallbackIcon: Icons.person_rounded, border: Colors.white),
+            PhotoAvatar(photo: otherPhoto, size: 40, fallbackIcon: Icons.person_rounded, border: AppColors.surface),
             const SizedBox(width: 10),
             Expanded(
               child: Text(widget.otherName,
@@ -238,7 +238,7 @@ class _ChatScreenState extends State<ChatScreen> {
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 6),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(34),
               image: const DecorationImage(
                 image: AssetImage('assets/ui/paw_pattern.png'),
@@ -440,7 +440,7 @@ class _Bubble extends StatelessWidget {
     final color = mine ? _bubbleMine : _bubbleOther;
     final av = SizedBox(
       width: 36,
-      child: showAvatar ? PhotoAvatar(photo: avatar, size: 36, border: Colors.white, fallbackIcon: Icons.person_rounded) : null,
+      child: showAvatar ? PhotoAvatar(photo: avatar, size: 36, border: AppColors.surface, fallbackIcon: Icons.person_rounded) : null,
     );
     final bubble = Container(
       constraints: BoxConstraints(maxWidth: w * 0.68),

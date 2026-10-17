@@ -22,7 +22,21 @@ export default {
   async fetch(req, env) {
     if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
     const url = new URL(req.url);
-    if (url.pathname === '/' && req.method === 'GET') return json({ ok: true, service: 'meupet-push' });
+    if (url.pathname === '/' && req.method === 'GET') {
+      // Diagnóstico: diz só se a chave existe e funciona (nunca mostra a chave).
+      const out = { ok: true, service: 'meupet-push', configured: !!env.SERVICE_ACCOUNT };
+      if (url.searchParams.has('check') && env.SERVICE_ACCOUNT) {
+        try {
+          const sa = JSON.parse(env.SERVICE_ACCOUNT);
+          out.projectMatches = sa.project_id === (env.PROJECT_ID || 'meupet-2c05b');
+          out.google = !!(await getAccessToken(sa));
+        } catch (e) {
+          out.google = false;
+          out.error = String(e.message || e).slice(0, 120).replace(/-----BEGIN[\s\S]*/, '');
+        }
+      }
+      return json(out);
+    }
     if (url.pathname !== '/notify' || req.method !== 'POST') return json({ error: 'not found' }, 404);
 
     const projectId = env.PROJECT_ID || 'meupet-2c05b';

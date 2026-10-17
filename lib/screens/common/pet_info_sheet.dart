@@ -42,7 +42,7 @@ Future<void> showPetInfoSheet(
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    backgroundColor: Colors.white,
+    backgroundColor: AppColors.surface,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
     builder: (c) => DraggableScrollableSheet(
       expand: false,
@@ -64,7 +64,7 @@ Future<void> showPetInfoSheet(
             ];
             return ListView(controller: scroll, padding: const EdgeInsets.fromLTRB(20, 14, 20, 30), children: [
               Center(
-                child: Container(width: 40, height: 4, decoration: BoxDecoration(color: const Color(0xFFDDE1E2), borderRadius: BorderRadius.circular(2))),
+                child: Container(width: 40, height: 4, decoration: BoxDecoration(color: AppColors.line, borderRadius: BorderRadius.circular(2))),
               ),
               const SizedBox(height: 12),
               Row(children: [
@@ -110,7 +110,7 @@ Future<void> showPetInfoSheet(
                       Expanded(child: Text(n.providerName, style: const TextStyle(fontWeight: FontWeight.w600))),
                       Stars(n.stars.toDouble(), size: 14),
                     ]),
-                    if (n.text.isNotEmpty) Text(n.text, style: const TextStyle(color: Color(0xFF5B6366))),
+                    if (n.text.isNotEmpty) Text(n.text, style: TextStyle(color: AppColors.text2)),
                   ]),
                 ),
               if (Session.current.value?.isProvider == true) ...[

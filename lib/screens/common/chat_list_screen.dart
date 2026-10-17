@@ -49,7 +49,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     decoration: BoxDecoration(color: _petchatOrange, borderRadius: BorderRadius.circular(28)),
                     child: Row(children: [
                       Material(
-                        color: Colors.white,
+                        color: AppColors.surface,
                         shape: const CircleBorder(),
                         child: InkWell(
                           customBorder: const CircleBorder(),
@@ -121,11 +121,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(chatId: d.id, otherName: name, otherId: other))),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFE6E8E9)))),
+        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.line))),
         child: Row(children: [
           FutureBuilder<AppUser?>(
             future: Db.getUser(other),
-            builder: (context, s) => PhotoAvatar(photo: s.data?.photo, size: 58, fallbackIcon: Icons.person_rounded, border: Colors.white),
+            builder: (context, s) => PhotoAvatar(photo: s.data?.photo, size: 58, fallbackIcon: Icons.person_rounded, border: AppColors.surface),
           ),
           const SizedBox(width: 12),
           Expanded(
