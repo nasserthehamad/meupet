@@ -201,7 +201,7 @@ class _ProviderHeader extends StatelessWidget {
         ),
         padding: EdgeInsets.fromLTRB(14, top + 10, 14, 22),
         child: Stack(children: [
-          const Positioned.fill(child: IgnorePointer(child: PawTrail())),
+          const Positioned(left: 52, top: 64, bottom: 0, width: 40, child: IgnorePointer(child: PawTrail())),
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Row(children: [MenuButton(), SizedBox(width: 6), LogoText(size: 26)]),

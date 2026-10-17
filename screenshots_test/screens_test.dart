@@ -235,7 +235,10 @@ Future<void> shot(WidgetTester t, String name, Widget Function() home, {String? 
 }
 
 Future<void> Function(WidgetTester) tapKey(String key) => (t) async {
-      await t.tap(find.byKey(Key(key)).first);
+      final f = find.byKey(Key(key)).first;
+      await t.ensureVisible(f);
+      await t.pump(const Duration(milliseconds: 300));
+      await t.tap(f);
     };
 
 void main() {

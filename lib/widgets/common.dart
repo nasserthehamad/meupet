@@ -106,11 +106,11 @@ class TopBar extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(14, top + 8, 14, 10),
       child: Stack(children: [
         Positioned(
-          left: 56,
-          top: -4,
-          bottom: -6,
-          width: 60,
-          child: IgnorePointer(child: PawTrail(color: AppColors.muted.withValues(alpha: 0.45), small: true)),
+          left: 54,
+          top: -2,
+          bottom: -4,
+          width: 34,
+          child: IgnorePointer(child: PawTrail(color: AppColors.muted.withValues(alpha: 0.5), small: true)),
         ),
         Row(children: [
           if (showBack) const _BackCircle(background: Color(0xFFEDEFF0)) else MenuButton(color: color),
@@ -172,9 +172,13 @@ class PetHeader extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(14, top + 10, 14, bottom == null ? 24 : 18),
         child: Stack(
           children: [
-            Positioned.fill(
+            Positioned(
+              left: 48,
+              top: 0,
+              bottom: 0,
+              width: 40,
               child: IgnorePointer(
-                child: PawTrail(color: white ? AppColors.muted.withValues(alpha: 0.4) : Colors.white),
+                child: PawTrail(color: white ? AppColors.muted.withValues(alpha: 0.45) : Colors.white),
               ),
             ),
             Column(
@@ -188,6 +192,7 @@ class PetHeader extends StatelessWidget {
                       if (showBack) _BackCircle(background: white ? const Color(0xFFEDEFF0) : Colors.white),
                       if (!showMenu && !showBack) const SizedBox(width: 6),
                     ]),
+                    const SizedBox(width: 38),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -250,6 +255,8 @@ class PawTrail extends StatelessWidget {
   Widget build(BuildContext context) => CustomPaint(painter: _PawTrailPainter(color, small));
 }
 
+/// Desenha a trilha dentro da própria caixa (estreita, ao lado do logo):
+/// patinhas pequenas, do mesmo tamanho, num "S" suave de cima para baixo.
 class _PawTrailPainter extends CustomPainter {
   final Color color;
   final bool small;
@@ -258,35 +265,37 @@ class _PawTrailPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     const icon = Icons.pets;
-    // Trilha em curva: desce pela esquerda do logo e termina embaixo, no centro.
-    final p0 = small ? Offset(size.width * 0.75, 2) : Offset(size.width * 0.27, 6);
-    final p1 = small ? Offset(size.width * 0.05, size.height * 0.5) : Offset(size.width * 0.06, size.height * 0.62);
-    final p2 = small ? Offset(size.width * 0.35, size.height - 2) : Offset(size.width * 0.44, size.height - 4);
+    final paw = small ? 10.0 : 13.0;
+    final steps = small ? 4 : 7;
+    // S suave: começa à direita no topo, vai para a esquerda e volta para a direita.
+    final p0 = Offset(size.width * 0.80, paw * 0.6);
+    final p1 = Offset(size.width * 0.05, size.height * 0.45);
+    final p2 = Offset(size.width * 0.85, size.height - paw * 0.6);
     Offset at(double t) => p0 * ((1 - t) * (1 - t)) + p1 * (2 * (1 - t) * t) + p2 * (t * t);
     Offset tangent(double t) => (p1 - p0) * (2 * (1 - t)) + (p2 - p1) * (2 * t);
-    final steps = small ? 4 : 8;
+    final shadow = color.computeLuminance() > 0.6;
     for (var i = 0; i < steps; i++) {
-      final t = 0.04 + i * (0.92 / (steps - 1));
+      final t = i / (steps - 1);
       final side = i.isEven ? 1.0 : -1.0;
       final tg = tangent(t);
-      final len = tg.distance;
+      final len = tg.distance == 0 ? 1.0 : tg.distance;
       final n = Offset(-tg.dy / len, tg.dx / len);
-      final p = at(t) + n * ((small ? 5 : 9) * side);
-      final tp = TextPainter(
-        text: TextSpan(
-          text: String.fromCharCode(icon.codePoint),
-          style: TextStyle(
-            fontFamily: icon.fontFamily,
-            package: icon.fontPackage,
-            fontSize: small ? 13 : 20,
-            color: color,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
+      final p = at(t) + n * (paw * 0.32 * side);
+      TextPainter painter(Color c) => TextPainter(
+            text: TextSpan(
+              text: String.fromCharCode(icon.codePoint),
+              style: TextStyle(fontFamily: icon.fontFamily, package: icon.fontPackage, fontSize: paw, color: c),
+            ),
+            textDirection: TextDirection.ltr,
+          )..layout();
       canvas.save();
       canvas.translate(p.dx, p.dy);
-      canvas.rotate(tg.direction + 1.5708 + side * 0.22);
+      canvas.rotate(tg.direction + 1.5708);
+      if (shadow) {
+        final sp = painter(const Color(0x22000000));
+        sp.paint(canvas, Offset(-sp.width / 2 + 0.6, -sp.height / 2 + 0.8));
+      }
+      final tp = painter(color);
       tp.paint(canvas, Offset(-tp.width / 2, -tp.height / 2));
       canvas.restore();
     }

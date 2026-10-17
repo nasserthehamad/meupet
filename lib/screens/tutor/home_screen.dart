@@ -33,28 +33,32 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final count = serviceGroups.length + 1;
+    final bottom = MediaQuery.paddingOf(context).bottom;
     return Column(children: [
       TopBar(onBell: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AgendaScreen()))),
       Expanded(
         child: ColoredBox(
           color: _homeBg,
-          child: Stack(children: [
-            PageView(
-              controller: _pages,
-              onPageChanged: (i) => setState(() => _page = i),
-              children: [
-                _VidaPage(onOpenGroup: (i) => _goTo(i + 1)),
-                for (final g in serviceGroups) _GroupPage(group: g),
-              ],
+          child: Column(children: [
+            Expanded(
+              child: PageView(
+                controller: _pages,
+                onPageChanged: (i) => setState(() => _page = i),
+                children: [
+                  _VidaPage(onOpenGroup: (i) => _goTo(i + 1)),
+                  for (final g in serviceGroups) _GroupPage(group: g),
+                ],
+              ),
             ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 10,
-              child: IgnorePointer(
-                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  for (var i = 0; i < count; i++)
-                    AnimatedContainer(
+            // "Adoção PET facilitada" fica sempre fixa no rodapé, em todas as telas do carrossel.
+            const _AdoptionBanner(),
+            Padding(
+              padding: EdgeInsets.fromLTRB(0, 10, 0, 10 + bottom),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                for (var i = 0; i < count; i++)
+                  GestureDetector(
+                    onTap: () => _goTo(i),
+                    child: AnimatedContainer(
                       duration: const Duration(milliseconds: 250),
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       width: i == _page ? 12 : 9,
@@ -65,13 +69,32 @@ class _HomeScreenState extends State<HomeScreen> {
                         border: Border.all(color: Colors.white, width: 1.5),
                       ),
                     ),
-                ]),
-              ),
+                  ),
+              ]),
             ),
           ]),
         ),
       ),
     ]);
+  }
+}
+
+double _heroCircle(double w) => (w * 0.47).clamp(150.0, 240.0);
+
+/// Página rolável do carrossel: os enfeites amarelos rolam junto com o conteúdo.
+class _ScrollPage extends StatelessWidget {
+  final List<Widget> children;
+  const _ScrollPage({required this.children});
+  @override
+  Widget build(BuildContext context) {
+    final circle = _heroCircle(MediaQuery.sizeOf(context).width);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Stack(children: [
+        Positioned.fill(child: _Blobs(circle: circle)),
+        Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
+      ]),
+    );
   }
 }
 
@@ -100,17 +123,24 @@ class _SearchBox extends StatelessWidget {
   }
 }
 
-/// Enfeites amarelos do protótipo.
+/// Enfeites amarelos do protótipo (atrás dos cartões, nunca sobre textos).
 class _Blobs extends StatelessWidget {
-  const _Blobs();
+  final double circle;
+  const _Blobs({required this.circle});
   @override
   Widget build(BuildContext context) {
+    // 78 = busca; depois vem o herói (circle + 10) e o título (~42).
+    final firstRow = 78 + circle + 10 + 42;
     return IgnorePointer(
-      child: Stack(children: [
+      child: Stack(clipBehavior: Clip.hardEdge, children: [
         Positioned(left: -18, top: 70, child: Image.asset('assets/ui/blob_yellow.png', width: 64)),
         Positioned(left: 0, top: 86, child: Opacity(opacity: 0.6, child: Image.asset('assets/ui/blob_line.png', width: 52))),
-        Positioned(right: -22, top: 330, child: Image.asset('assets/ui/blob_yellow.png', width: 52)),
-        Positioned(left: -26, top: 560, child: Opacity(opacity: 0.8, child: Image.asset('assets/ui/blob_yellow.png', width: 46))),
+        Positioned(right: -24, top: firstRow + 30, child: Image.asset('assets/ui/blob_yellow.png', width: 50)),
+        Positioned(
+          left: -26,
+          top: firstRow + 170,
+          child: Opacity(opacity: 0.8, child: Image.asset('assets/ui/blob_yellow.png', width: 46)),
+        ),
       ]),
     );
   }
@@ -124,7 +154,7 @@ class _Hero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
-    final circle = (w * 0.47).clamp(150.0, 240.0);
+    final circle = _heroCircle(w);
     return SizedBox(
       height: circle + 10,
       child: Stack(clipBehavior: Clip.none, children: [
@@ -195,7 +225,7 @@ class _AdoptionBanner extends StatelessWidget {
       key: const Key('adocao'),
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdoptionScreen())),
       child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+        margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
         decoration: BoxDecoration(color: AppColors.teal, borderRadius: BorderRadius.circular(16)),
         clipBehavior: Clip.antiAlias,
         child: Column(children: [
@@ -228,10 +258,7 @@ class _VidaPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(children: [
-      const Positioned.fill(child: _Blobs()),
-      ListView(
-        padding: const EdgeInsets.only(bottom: 44),
+    return _ScrollPage(
         children: [
           const Padding(padding: EdgeInsets.fromLTRB(16, 16, 16, 12), child: _SearchBox()),
           const _Hero(word: '+VIDA', image: 'assets/images/hero.jpg'),
@@ -291,11 +318,8 @@ class _VidaPage extends StatelessWidget {
                 ),
             ]),
           ),
-          const SizedBox(height: 6),
-          const _AdoptionBanner(),
         ],
-      ),
-    ]);
+    );
   }
 }
 
@@ -329,10 +353,7 @@ class _GroupPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final titleColor = group.key == 'produtos' ? group.color : AppColors.teal;
-    return Stack(children: [
-      const Positioned.fill(child: _Blobs()),
-      ListView(
-        padding: const EdgeInsets.only(bottom: 44),
+    return _ScrollPage(
         children: [
           const Padding(padding: EdgeInsets.fromLTRB(16, 16, 16, 12), child: _SearchBox()),
           _Hero(word: group.heroTitle, image: group.hero),
@@ -358,9 +379,7 @@ class _GroupPage extends StatelessWidget {
               ),
             ),
           ),
-          const _AdoptionBanner(),
         ],
-      ),
-    ]);
+    );
   }
 }
