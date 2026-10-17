@@ -52,9 +52,7 @@ jobs:
           grep -n "applicationId\|minSdk" android/app/build.gradle* || true
 
       - name: Chave de assinatura fixa (permite atualizar o app sem desinstalar)
-        run: |
-          mkdir -p ~/.android
-          cp android-keystore/debug.keystore ~/.android/debug.keystore
+        run: python3 tool/fix_signing.py
 
       - name: Configuração do Firebase
         run: python3 tool/gen_firebase_options.py
@@ -109,6 +107,16 @@ jobs:
 
       - name: Renomear
         run: cp build/app/outputs/flutter-apk/app-release.apk MeuPet.apk
+
+      - name: Conferir assinatura (tem que ser a chave fixa)
+        run: |
+          python3 tool/apkcert.py MeuPet.apk | tee cert.txt
+          EXPECTED=5A9E551877F7EF6828D48A7BE157533099C026E232DCF9ADBD8979FE8A87E30F
+          if ! grep -q "$EXPECTED" cert.txt; then
+            echo "::error title=Assinatura::APK assinado com chave diferente da fixa — atualizações não instalariam por cima"
+            exit 1
+          fi
+          echo "::notice title=Assinatura::OK, chave fixa do Meu Pet+"
 
       - uses: actions/upload-artifact@v4
         with:
