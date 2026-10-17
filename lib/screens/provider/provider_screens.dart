@@ -455,13 +455,20 @@ class _ProviderHeader extends StatelessWidget {
               ),
             ]),
             Expanded(
-              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                if (isTaxiUser(user?.categories ?? const [])) ...[
-                  _NewRideBadge(onTap: onNewRides),
-                  const SizedBox(width: 6),
-                ],
-                PhotoAvatar(photo: user?.photo, size: 104, fallbackIcon: Icons.storefront_rounded, border: AppColors.surface),
-              ]),
+              // Em telas estreitas (ou com o painel de emergência) tudo
+              // diminui junto em vez de estourar a largura.
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    if (isTaxiUser(user?.categories ?? const [])) ...[
+                      _NewRideBadge(onTap: onNewRides),
+                      const SizedBox(width: 6),
+                    ],
+                    PhotoAvatar(photo: user?.photo, size: 104, fallbackIcon: Icons.storefront_rounded, border: AppColors.surface),
+                  ]),
+                ),
+              ),
             ),
             if (hasEmergency24h(user))
               StreamBuilder<List<Emergency>>(
