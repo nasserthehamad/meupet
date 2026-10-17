@@ -21,6 +21,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late final _address = TextEditingController(text: _u.address);
   late final _desc = TextEditingController(text: _u.description);
   late final Set<String> _cats = {..._u.categories};
+  late final Set<String> _animals = {..._u.animals};
   late String? _photo = _u.photo;
   bool _saving = false;
 
@@ -37,6 +38,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'address': _address.text.trim(),
           'description': _desc.text.trim(),
           'categories': _cats.toList(),
+          'animals': _animals.toList(),
         },
       });
       if (mounted) showSnack(context, 'Perfil atualizado!');
@@ -97,6 +99,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     selectedColor: AppColors.teal,
                     labelStyle: TextStyle(color: _cats.contains(c.name) ? Colors.white : AppColors.text),
                     onSelected: (v) => setState(() => v ? _cats.add(c.name) : _cats.remove(c.name)),
+                  ),
+              ]),
+              const SizedBox(height: 16),
+              const Text('Animais atendidos', style: TextStyle(fontWeight: FontWeight.w600)),
+              const Text('Deixe em branco se atende todos.', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+              const SizedBox(height: 6),
+              Wrap(spacing: 8, runSpacing: 4, children: [
+                for (final a in animalCategories)
+                  FilterChip(
+                    label: Text(a.$1),
+                    selected: _animals.contains(a.$2),
+                    showCheckmark: false,
+                    selectedColor: AppColors.orange,
+                    labelStyle: TextStyle(color: _animals.contains(a.$2) ? Colors.white : AppColors.text),
+                    onSelected: (v) => setState(() => v ? _animals.add(a.$2) : _animals.remove(a.$2)),
                   ),
               ]),
             ],

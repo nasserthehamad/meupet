@@ -50,12 +50,14 @@ class ProvidersListScreen extends StatelessWidget {
   final List<String> categories;
   final bool nearMe;
   final bool bookOnTap;
+  final String? species; // só quem atende esse animal
   const ProvidersListScreen({
     super.key,
     required this.title,
     required this.categories,
     this.nearMe = false,
     this.bookOnTap = false,
+    this.species,
   });
 
   String _norm(String s) => s.trim().toLowerCase();
@@ -68,6 +70,7 @@ class ProvidersListScreen extends StatelessWidget {
         stream: Db.providersByAny(categories),
         builder: (context, snap) {
           var list = snap.data ?? [];
+          if (species != null) list = list.where((p) => servesSpecies(p.animals, species!)).toList();
           List<AppUser> others = [];
           if (nearMe && myCity.isNotEmpty) {
             others = list.where((p) => _norm(p.city) != myCity).toList();

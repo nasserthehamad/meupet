@@ -21,6 +21,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _business = TextEditingController();
   final _address = TextEditingController();
   final Set<String> _cats = {};
+  final Set<String> _animals = {};
   bool _loading = false;
 
   Future<void> _submit() async {
@@ -44,6 +45,7 @@ class _SignupScreenState extends State<SignupScreen> {
         city: _city.text,
         address: _address.text,
         categories: _cats.toList(),
+        animals: _role == 'prestador' ? _animals.toList() : const [],
       );
       if (mounted) Navigator.of(context).popUntil((r) => r.isFirst);
     } catch (e) {
@@ -136,6 +138,22 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                   ]),
                 ],
+                const SizedBox(height: 16),
+                const Text('Quais animais você atende?', style: TextStyle(fontWeight: FontWeight.w600)),
+                const Text('Deixe em branco se atende todos.', style: TextStyle(fontSize: 12, color: AppColors.muted)),
+                const SizedBox(height: 8),
+                Wrap(spacing: 8, runSpacing: 4, children: [
+                  for (final a in animalCategories)
+                    FilterChip(
+                      key: Key('animal_chip_${a.$2}'),
+                      label: Text(a.$1),
+                      selected: _animals.contains(a.$2),
+                      selectedColor: AppColors.orange,
+                      showCheckmark: false,
+                      labelStyle: TextStyle(color: _animals.contains(a.$2) ? Colors.white : AppColors.text),
+                      onSelected: (v) => setState(() => v ? _animals.add(a.$2) : _animals.remove(a.$2)),
+                    ),
+                ]),
               ],
               const SizedBox(height: 26),
               OrangeButton(label: 'Criar conta', loading: _loading, onPressed: _submit),

@@ -40,6 +40,7 @@ class Db {
     String city = '',
     String address = '',
     List<String> categories = const [],
+    List<String> animals = const [],
   }) async {
     final cred = await FirebaseAuth.instance
         .createUserWithEmailAndPassword(email: email.trim(), password: pass);
@@ -53,6 +54,7 @@ class Db {
       'address': address.trim(),
       'description': '',
       'categories': categories,
+      'animals': animals,
       'createdAt': FieldValue.serverTimestamp(),
     });
   }

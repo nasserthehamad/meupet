@@ -147,9 +147,20 @@ IconData iconForSpecies(String s) {
 }
 
 /// Categorias de animal da tela inicial (com foto, como no protótipo).
-const animalCategories = <(String label, String species, String image)>[
+/// (rótulo, espécie gravada nos pets/adoções, foto — null = desenho)
+/// Os 4 primeiros aparecem no início; "Ver tudo" mostra todos.
+typedef AnimalCat = (String label, String species, String? image);
+
+const animalCategories = <AnimalCat>[
   ('Gato', 'Gato', 'assets/images/animal_gato.jpg'),
   ('Cachorro', 'Cachorro', 'assets/images/animal_cachorro.jpg'),
   ('Coelho', 'Coelho', 'assets/images/animal_coelho.jpg'),
   ('Aves', 'Aves', 'assets/images/animal_passaro.jpg'),
+  ('Roedores', 'Roedor', 'assets/images/animal_roedor.jpg'),
+  ('Répteis', 'Réptil', 'assets/images/animal_reptil.jpg'),
+  ('Peixes', 'Peixe', null),
+  ('Outros', 'Outro', null),
 ];
+
+/// Prestador sem "Animais atendidos" marcados atende todos.
+bool servesSpecies(List<String> animals, String species) => animals.isEmpty || animals.contains(species);

@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:meupet/core/catalog.dart';
 import 'package:meupet/core/db.dart';
 import 'package:meupet/core/models.dart';
 import 'package:meupet/core/theme.dart';
@@ -22,6 +23,7 @@ import 'package:meupet/screens/common/profile_screen.dart';
 import 'package:meupet/screens/provider/provider_shell.dart';
 import 'package:meupet/screens/tutor/adoption_screen.dart';
 import 'package:meupet/screens/tutor/agenda_screen.dart';
+import 'package:meupet/screens/tutor/animal_screen.dart';
 import 'package:meupet/screens/tutor/my_pets_screen.dart';
 import 'package:meupet/screens/tutor/pet_detail_screen.dart';
 import 'package:meupet/screens/tutor/pet_form_screen.dart';
@@ -61,16 +63,18 @@ Future<FakeFirebaseFirestore> seed() async {
       'businessName': 'Vet Amicão', 'address': 'Av. do Estado, 1200', 'city': 'São Paulo', 'phone': '(11) 3333-0000',
       'description': 'Clínica veterinária 24h com atendimento humanizado, vacinas, exames e TaxiPet.',
       'categories': ['Veterinário', 'Vacinação', 'Exames', 'Emergência 24h', 'TaxiPet'],
+      'animals': ['Cachorro', 'Gato', 'Coelho', 'Aves', 'Roedor'],
     },
     'shop1': {
       'name': 'Carla Souza', 'email': 'mania@bicho.com', 'role': 'prestador', 'photo': photo('maniadebicho'),
       'businessName': 'Mania de Bicho', 'address': 'R. Gerson França, 88', 'city': 'São Paulo',
-      'categories': ['Banho e Tosa', 'Petshop', 'Hotel', 'Creche'],
+      'categories': ['Banho e Tosa', 'Petshop', 'Hotel', 'Creche', 'Ração', 'Brinquedos'],
     },
     'taxi1': {
       'name': 'Bruno Lima', 'email': 'pet@taxi.com', 'role': 'prestador', 'photo': photo('pettaxi'),
       'businessName': 'Pet Taxi', 'address': 'Atende toda a zona sul', 'city': 'São Paulo',
       'categories': ['TaxiPet', 'DogWalker', 'Banho e Tosa'],
+      'animals': ['Cachorro', 'Gato'],
     },
   };
   for (final e in users.entries) {
@@ -271,4 +275,6 @@ void main() {
   testWidgets('21 novo pet', (t) => shot(t, '21_novo_pet', () => const PetFormScreen(), as: 'tutor'));
   testWidgets('22 prestador inicio', (t) => shot(t, '22_prestador_inicio', () => const ProviderShell(), as: 'vet'));
   testWidgets('23 prestador menu', (t) => shot(t, '23_prestador_menu', () => const ProviderShell(), as: 'vet', act: tapKey('menu')));
+  testWidgets('24 animais', (t) => shot(t, '24_animais', () => const AnimalsScreen(), as: 'tutor'));
+  testWidgets('25 animal cachorro', (t) => shot(t, '25_animal_cachorro', () => AnimalScreen(animal: animalCategories[1]), as: 'tutor'));
 }

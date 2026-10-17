@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../core/catalog.dart';
 import '../../core/theme.dart';
+import '../../widgets/animal_avatar.dart';
 import '../../widgets/category_grid.dart';
 import '../../widgets/common.dart';
 import 'adoption_screen.dart';
 import 'agenda_screen.dart';
+import 'animal_screen.dart';
 import 'providers_screen.dart';
 
 const _homeBg = Color(0xFFDCDCDC);
@@ -263,26 +265,17 @@ class _VidaPage extends StatelessWidget {
           const Padding(padding: EdgeInsets.fromLTRB(16, 16, 16, 12), child: _SearchBox()),
           const _Hero(word: '+VIDA', image: 'assets/images/hero.jpg'),
           _Title('Categoria Animal',
-              onSeeAll: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdoptionScreen()))),
+              onSeeAll: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AnimalsScreen()))),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(children: [
-              for (final a in animalCategories)
+              for (final a in animalCategories.take(4))
                 Expanded(
-                  child: GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => AdoptionScreen(initialSpecies: a.$2)),
-                    ),
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(color: const Color(0xFFEEEEEE), borderRadius: BorderRadius.circular(16)),
-                      child: Column(children: [
-                        CircleAvatar(radius: 30, backgroundImage: AssetImage(a.$3)),
-                        const SizedBox(height: 8),
-                        Text(a.$1, style: const TextStyle(fontSize: 15, color: Color(0xFF6B7477))),
-                      ]),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: AnimalCard(
+                      animal: a,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AnimalScreen(animal: a))),
                     ),
                   ),
                 ),

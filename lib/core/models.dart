@@ -37,6 +37,7 @@ class AppUser {
   final String description;
   final List<String> categories;
   final List<String> favorites;
+  final List<String> animals; // espécies atendidas (prestador); vazio = todas
 
   AppUser({
     required this.id,
@@ -51,6 +52,7 @@ class AppUser {
     this.description = '',
     this.categories = const [],
     this.favorites = const [],
+    this.animals = const [],
   });
 
   bool get isProvider => role == 'prestador';
@@ -71,6 +73,7 @@ class AppUser {
       description: m['description'] ?? '',
       categories: List<String>.from(m['categories'] ?? const []),
       favorites: List<String>.from(m['favorites'] ?? const []),
+      animals: List<String>.from(m['animals'] ?? const []),
     );
   }
 }
@@ -237,7 +240,7 @@ class Adoption {
   }
 }
 
-const speciesList = ['Cachorro', 'Gato', 'Coelho', 'Aves', 'Roedor', 'Réptil', 'Outro'];
+const speciesList = ['Cachorro', 'Gato', 'Coelho', 'Aves', 'Roedor', 'Réptil', 'Peixe', 'Outro'];
 
 const appointmentStatusLabel = {
   'pendente': 'Aguardando',
