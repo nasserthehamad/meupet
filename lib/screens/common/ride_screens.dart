@@ -208,7 +208,9 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
 
   void _onReady() {
     _ready = true;
-    _reverse();
+    _later(() {
+      if (mounted) _reverse();
+    });
   }
 
   void _onMoved(GeoPos c, bool byUser) {
@@ -314,7 +316,7 @@ class _RideRequestScreenState extends State<RideRequestScreen> {
   }
 
   void _fit() {
-    if (!_ready || _pickup == null || _dest == null) return;
+    if (!mounted || !_ready || _pickup == null || _dest == null) return;
     final pts = (_route?.points.length ?? 0) > 1 ? _route!.points : [_pickup!.pos, _dest!.pos];
     final top = MediaQuery.paddingOf(context).top;
     _map.fitCamera(CameraFit.coordinates(
