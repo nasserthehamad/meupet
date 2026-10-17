@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/db.dart';
-import '../core/models.dart';
 import '../core/theme.dart';
 import '../screens/common/chat_list_screen.dart';
 import '../screens/common/emergency_screen.dart';

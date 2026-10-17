@@ -312,8 +312,8 @@ class _ImgAction extends StatelessWidget {
   final String asset;
   final String label;
   final VoidCallback onTap;
-  final double size;
-  const _ImgAction({required this.asset, required this.label, required this.onTap, this.size = 34});
+  const _ImgAction({required this.asset, required this.label, required this.onTap});
+  static const double size = 34;
   @override
   Widget build(BuildContext context) {
     return InkWell(

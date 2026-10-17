@@ -20,7 +20,6 @@ class LogoText extends StatelessWidget {
   }
 }
 
-const double kBandRadius = 46;
 
 /// Botão ☰ (círculo com contorno) que abre o menu lateral.
 class MenuButton extends StatelessWidget {
