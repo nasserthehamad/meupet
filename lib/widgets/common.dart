@@ -11,11 +11,17 @@ class LogoText extends StatelessWidget {
   const LogoText({super.key, this.size = 22});
   @override
   Widget build(BuildContext context) {
-    return Text.rich(
-      TextSpan(children: [
-        TextSpan(text: 'MEU ', style: logoStyle(size, AppColors.teal)),
-        TextSpan(text: 'PET+', style: logoStyle(size, AppColors.orange)),
-      ]),
+    // Nunca quebra em duas linhas: se faltar espaço, diminui.
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text.rich(
+        TextSpan(children: [
+          TextSpan(text: 'MEU ', style: logoStyle(size, AppColors.teal)),
+          TextSpan(text: 'PET+', style: logoStyle(size, AppColors.orange)),
+        ]),
+        maxLines: 1,
+        softWrap: false,
+      ),
     );
   }
 }
@@ -104,13 +110,13 @@ class TopBar extends StatelessWidget {
     return Container(
       color: Colors.white,
       padding: EdgeInsets.fromLTRB(14, top + 8, 14, 10),
-      child: Stack(children: [
+      child: Stack(clipBehavior: Clip.none, children: [
         Positioned(
-          left: 54,
-          top: -2,
-          bottom: -4,
-          width: 34,
-          child: IgnorePointer(child: PawTrail(color: AppColors.muted.withValues(alpha: 0.5), small: true)),
+          left: 56,
+          top: 0,
+          bottom: 0,
+          width: 32,
+          child: IgnorePointer(child: PawTrail(color: AppColors.muted.withValues(alpha: 0.6), small: true)),
         ),
         Row(children: [
           if (showBack) const _BackCircle(background: Color(0xFFEDEFF0)) else MenuButton(color: color),
@@ -265,7 +271,7 @@ class _PawTrailPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     const icon = Icons.pets;
-    final paw = small ? 10.0 : 13.0;
+    final paw = small ? 11.0 : 13.0;
     final steps = small ? 4 : 7;
     // S suave: começa à direita no topo, vai para a esquerda e volta para a direita.
     final p0 = Offset(size.width * 0.80, paw * 0.6);

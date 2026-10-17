@@ -18,6 +18,10 @@ class AnimalsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Cartões em 3 colunas, com a foto proporcional à largura (sem estourar).
+    final cardW = (MediaQuery.sizeOf(context).width - 32 - 20) / 3;
+    final avatar = (cardW * 0.62).clamp(52.0, 84.0);
+    final cardH = avatar + 12 + 12 + 8 + 24;
     return Scaffold(
       backgroundColor: const Color(0xFFDCDCDC),
       body: Column(children: [
@@ -45,12 +49,12 @@ class AnimalsScreen extends StatelessWidget {
                 physics: const NeverScrollableScrollPhysics(),
                 mainAxisSpacing: 10,
                 crossAxisSpacing: 10,
-                childAspectRatio: 0.92,
+                childAspectRatio: cardW / cardH,
                 children: [
                   for (final a in animalCategories)
                     AnimalCard(
                       animal: a,
-                      avatar: 74,
+                      avatar: avatar,
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AnimalScreen(animal: a))),
                     ),
                 ],
