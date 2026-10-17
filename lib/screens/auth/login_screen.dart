@@ -117,54 +117,30 @@ class _LoginScreenState extends State<LoginScreen> {
       data: buildTheme(),
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: LayoutBuilder(builder: (context, c) {
+        body: Builder(builder: (context) {
+          // A estrutura da tela é sempre a mesma, com ou sem teclado: se ela
+          // mudasse, o campo perdia o foco e o teclado fechava sozinho.
+          final size = MediaQuery.sizeOf(context);
           final pad = MediaQuery.paddingOf(context);
-          final keyboard = MediaQuery.viewInsetsOf(context).bottom > 0;
-          // Foto dos bichinhos sempre inteira, do tamanho da largura da tela.
-          final footer = Image.asset(
-            'assets/images/animais_rodape.jpg',
-            width: c.maxWidth,
-            height: c.maxWidth * 317 / 900,
-            fit: BoxFit.fill,
-          );
+          final footerH = size.width * 317 / 900;
           const formH = 372.0;
-          final footerH = c.maxWidth * 317 / 900;
-          final heroSpace = c.maxHeight - pad.top - formH - footerH - pad.bottom;
-          if (!keyboard && heroSpace >= 170) {
-            // Cabe tudo: tela fixa, sem rolar. O vídeo ocupa o espaço que sobra
-            // e a foto fica presa no rodapé.
-            return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              SizedBox(height: pad.top),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Center(
-                    child: ConstrainedBox(constraints: BoxConstraints(maxHeight: h * 0.42), child: const LoginHero()),
-                  ),
-                ),
-              ),
-              form,
-              const SizedBox(height: 8),
-              footer,
-              SizedBox(height: pad.bottom),
-            ]);
-          }
-          // Tela baixa ou teclado aberto: rola.
-          return SingleChildScrollView(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              Padding(
-                padding: EdgeInsets.only(top: pad.top),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxHeight: h * 0.42),
-                  child: const Center(child: LoginHero()),
-                ),
-              ),
-              form,
-              const SizedBox(height: 8),
-              footer,
-              SizedBox(height: pad.bottom),
-            ]),
-          );
+          // O vídeo usa o espaço que sobra na tela inteira (sem contar o teclado).
+          final heroH = (size.height - pad.top - pad.bottom - formH - footerH - 12).clamp(150.0, h * 0.42).toDouble();
+          return CustomScrollView(slivers: [
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                SizedBox(height: pad.top + 4),
+                SizedBox(height: heroH, child: const Center(child: LoginHero())),
+                form,
+                const Spacer(),
+                const SizedBox(height: 8),
+                // Foto dos bichinhos sempre inteira, presa no rodapé.
+                Image.asset('assets/images/animais_rodape.jpg', width: size.width, height: footerH, fit: BoxFit.fill),
+                SizedBox(height: pad.bottom),
+              ]),
+            ),
+          ]);
         }),
       ),
     );
