@@ -338,3 +338,110 @@ export async function seedDemo({ projectId, uid, email, access }) {
   }
   return { writes: writes.length, providers: providers.length, petId: zukaId, petCreated: !pets.some((p) => p.id === zukaId) };
 }
+
+// ---------------------------------------------------------------- simulação
+// Notificações de exemplo para a conta de testes (tutor): mensagem do vet,
+// agendamento confirmado, TaxiPet a caminho e pedido pronto. Cada uma grava o
+// dado de verdade no banco, então tocar na notificação abre a tela certa.
+export async function simulateTutor({ projectId, uid, email, access, send, pause }) {
+  const H = { Authorization: `Bearer ${access}`, 'Content-Type': 'application/json' };
+  const commit = async (writes) => {
+    const r = await fetch(`${api(projectId)}:commit`, { method: 'POST', headers: H, body: JSON.stringify({ writes }) });
+    if (!r.ok) throw new Error(`Firestore ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  };
+  const setDoc = (path, data) => ({ update: { name: `${base(projectId)}/${path}`, fields: fields(data) } });
+  const patchDoc = (path, data) => ({
+    update: { name: `${base(projectId)}/${path}`, fields: fields(data) },
+    updateMask: { fieldPaths: Object.keys(data) },
+  });
+
+  // Garante os dados de demonstração (Zuka, prestadores).
+  const findZuka = async () => {
+    const q = await fetch(`${api(projectId)}:runQuery`, {
+      method: 'POST',
+      headers: H,
+      body: JSON.stringify({
+        structuredQuery: {
+          from: [{ collectionId: 'pets' }],
+          where: { fieldFilter: { field: { fieldPath: 'ownerId' }, op: 'EQUAL', value: { stringValue: uid } } },
+        },
+      }),
+    });
+    const pets = q.ok ? (await q.json()).filter((r) => r.document).map((r) => ({ id: r.document.name.split('/').pop(), ...plainFields(r.document.fields) })) : [];
+    return pets.find((p) => (p.name || '').trim().toLowerCase() === 'zuka');
+  };
+  let zuka = await findZuka();
+  const vr = await fetch(`${api(projectId)}/users/demo_vet`, { headers: H });
+  if (!zuka || !vr.ok) {
+    await seedDemo({ projectId, uid, email, access });
+    zuka = await findZuka();
+  }
+  const ur = await fetch(`${api(projectId)}/users/${uid}`, { headers: H });
+  const me = ur.ok ? plainFields((await ur.json()).fields) : {};
+  const myName = me.name || 'Tutor';
+  const petId = zuka?.id || `demo_zuka_${uid}`;
+  const petPhoto = zuka?.photo || PHOTOS.zuka;
+  const nowBr = new Date(Date.now() - 3 * 3600 * 1000);
+  const day = (d, h, m = 0) => new Date(Date.UTC(nowBr.getUTCFullYear(), nowBr.getUTCMonth(), nowBr.getUTCDate() + d, h + 3, m));
+  const now = new Date();
+
+  // 1) Mensagem do veterinário no chat
+  const chatId = [uid, 'demo_vet'].sort().join('_');
+  const text = 'Bom dia! Os exames da Zuka ficaram prontos, está tudo normal 😊 Quer marcar o retorno?';
+  await commit([
+    patchDoc(`chats/${chatId}`, {
+      participants: [uid, 'demo_vet'].sort(),
+      names: { [uid]: myName, demo_vet: 'Vet Amicão Bauru' },
+      lastMessage: text,
+      lastSender: 'demo_vet',
+      updatedAt: now,
+      readBy: { demo_vet: true },
+    }),
+    setDoc(`chats/${chatId}/messages/sim_${now.getTime()}`, { senderId: 'demo_vet', text, createdAt: now }),
+  ]);
+  await send('Vet Amicão Bauru', text, { type: 'chat', chatId, otherId: 'demo_vet', otherName: 'Vet Amicão Bauru' });
+  await pause();
+
+  // 2) Agendamento confirmado
+  const apId = `demo_${uid}_a1`;
+  const when = day(1, 10);
+  await commit([
+    setDoc(`appointments/${apId}`, {
+      tutorId: uid, tutorName: myName, petId, petName: 'Zuka', species: 'Gato', petPhoto,
+      providerId: 'demo_vet', providerName: 'Vet Amicão Bauru', service: 'Veterinário', dateTime: when,
+      status: 'confirmado', notes: 'Retorno dos exames', taxiPet: false, address: '', createdAt: now,
+    }),
+  ]);
+  await send('Agendamento confirmado ✅', 'Zuka · Veterinário · amanhã às 10:00h — Vet Amicão Bauru', { type: 'appointment', id: apId });
+  await pause();
+
+  // 3) TaxiPet a caminho (com o carrinho no mapa)
+  const rideId = `demo_${uid}_r2`;
+  await commit([
+    setDoc(`rides/${rideId}`, {
+      tutorId: uid, tutorName: myName, tutorPhone: me.phone || '', petId, petName: 'Zuka', petSpecies: 'Gato', petPhoto,
+      driverId: 'demo_taxi', driverName: 'Pet Taxi Bauru', driverPhone: '(14) 99777-0000',
+      pickup: me.address ? `${me.address}, Bauru, SP` : 'R. Araújo Leite, 10-50, Vila Santa Tereza, Bauru, SP',
+      destination: 'Vet Amicão Bauru, Av. Getúlio Vargas, 21-45, Bauru, SP',
+      pickupLat: -22.3283, pickupLng: -49.0742, destLat: -22.3355, destLng: -49.0605, km: 2.4, minutes: 8, price: 23.4,
+      driverLat: -22.3236, driverLng: -49.0810, driverAt: now,
+      city: 'Bauru', when: now, notes: 'Caixa de transporte pequena.', status: 'a_caminho', createdAt: now, updatedAt: now,
+    }),
+  ]);
+  await send('🚕 Pet Taxi Bauru', 'Motorista a caminho · Zuka', { type: 'ride', id: rideId });
+  await pause();
+
+  // 4) Pedido pronto para retirada
+  const orderId = `demo_${uid}_o1`;
+  await commit([
+    setDoc(`orders/${orderId}`, {
+      storeId: 'demo_shop', storeName: 'Mania de Bicho', tutorId: uid, tutorName: myName, tutorPhone: me.phone || '', tutorPhoto: me.photo || null,
+      items: [
+        { productId: 'demo_racao', name: 'Ração Premium Gatos Castrados 3kg', price: 119.9, qty: 1 },
+        { productId: 'demo_varinha', name: 'Varinha com Penas', price: 19.9, qty: 1 },
+      ],
+      total: 139.8, pickupName: myName, pickupDate: day(0, 17), notes: '', nfe: 'NB3021', status: 'pronto', createdAt: day(-1, 16, 40),
+    }),
+  ]);
+  await send('🛍️ Mania de Bicho', 'Seu pedido está pronto para retirada · NF NB3021', { type: 'order', id: orderId });
+}

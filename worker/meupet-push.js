@@ -8,7 +8,7 @@
 //   SERVICE_ACCOUNT  (Secret)  conteúdo do JSON da conta de serviço do Firebase
 //   PROJECT_ID       (Text)    meupet-2c05b
 
-import { seedDemo } from './seed.js';
+import { seedDemo, simulateTutor } from './seed.js';
 
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
 const CORS = {
@@ -65,6 +65,26 @@ export default {
         await new Promise((r) => setTimeout(r, delay));
         const res = await sendTo([sender], '🐾 Teste do Meu Pet+', 'Se você está vendo isto, as notificações estão funcionando!', { type: 'test' }, 'meupet', projectId, access);
         console.log(JSON.stringify({ ev: 'test', uid: sender, ...res }));
+        // Conta de teste do tutor: em seguida, notificações de exemplo de verdade.
+        const allowed = String(env.SEED_EMAILS || '').toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
+        if (who.email && allowed.includes(String(who.email).toLowerCase())) {
+          try {
+            await simulateTutor({
+              projectId,
+              uid: sender,
+              email: who.email,
+              access,
+              pause: () => new Promise((r) => setTimeout(r, 3000)),
+              send: async (title, body, data) => {
+                await new Promise((r) => setTimeout(r, 0));
+                const out = await sendTo([sender], title, body, data, 'meupet', projectId, access);
+                console.log(JSON.stringify({ ev: 'simulate', type: data.type, uid: sender, ...out }));
+              },
+            });
+          } catch (e) {
+            console.log(JSON.stringify({ ev: 'simulate_fail', err: String(e.message || e).slice(0, 300) }));
+          }
+        }
       };
       ctx.waitUntil(run());
       return json({ ok: true, devices: tokens.length, delay: delay / 1000 });
